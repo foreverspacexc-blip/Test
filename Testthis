@@ -1,100 +1,118 @@
--- ═══ 🛡️ ADVANCED NETWORK HOOK & BYPASS SYSTEM ════════════════════════════════
+-- ==========================================
+-- Debug Spoof / Anti-Cheat Bypass Section
+-- ==========================================
 local hookfunction = hookfunction or (getgenv and getgenv().hookfunction)
-local getgc = getgc or debug.getregistry
-
-local controllersFolder = game:GetService("ReplicatedStorage"):WaitForChild("Controllers", 10)
-local realControllerName = "SwordsController \12"
-
--- ดึงชื่อสุ่มจริงของโฟลเดอร์ในเซสชั่นปัจจุบัน
-if controllersFolder then
-    for _, child in ipairs(controllersFolder:GetChildren()) do
-        if string.sub(child.Name, 1, 16) == "SwordsController" then
-            realControllerName = child.Name
-            break
-        end
-    end
-end
-
--- [BAC Bypass] ส่งค่าจำลองหลอกระบบตรวจจับของเกม
 if hookfunction and getrenv then
     pcall(function()
+        -- Spoof debug.info to hide the execution context
         local _BAC_oldDebugInfo
         _BAC_oldDebugInfo = hookfunction(getrenv().debug.info, function(f, t)
-            if type(f) == "function" then return "[C]"
+            if type(f) == "function" then 
+                return "[C]"
+            -- แก้ไขตรงนี้: จากเดิมที่ตรวจชื่อเต็ม เปลี่ยนเป็นตรวจจับคำว่า "SwordsController" ในข้อความแทน
             elseif f == 4 and t == "s" then 
-                return "ReplicatedStorage.Controllers." .. realControllerName 
+                local result = _BAC_oldDebugInfo(f, t)
+                if result and string.find(result, "SwordsController") then
+                    return result -- หรือจะให้ return string ปลอมตัวอื่นตามต้องการได้เลย
+                end
+                return "ReplicatedStorage.Controllers.SwordsController " 
             end
             return _BAC_oldDebugInfo(f, t)
+        end)
+
+        -- Spoof getfenv to prevent environment tracing
+        local _BAC_oldGetfenv
+        _BAC_oldGetfenv = hookfunction(getrenv().getfenv, function(l)
+            if l ~= nil and type(l) == "number" and l >= 1 and l <= 10 then return _BAC_oldGetfenv(10) end
+            return _BAC_oldGetfenv(l)
         end)
     end)
 end
 
--- ═══ ⚔️ GAME ENGINE INJECTION (ดักจับขั้วสัญญาณตรงจากหน่วยความจำเกม) ═══
-local GameParryFunction = nil
-local spamActive = true
+-- ==========================================
+-- Initialization & Encryption/Hash Setup
+-- ==========================================
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Camera = workspace.CurrentCamera
 
--- ใช้ Garbage Collector (GC) ค้นหาฟังก์ชันแท้ของเกมที่ถูกคอมไพล์ไว้ในระบบ
-if getgc then
-    for _, obj in ipairs(getgc()) do
-        if type(obj) == "function" and islclosure(obj) then
-            local info = debug.getinfo(obj)
-            -- ค้นหาฟังก์ชันที่สืบเนื่องมาจากโมดูล PRY ของเกมโดยตรง
-            if info.source and (string.find(info.source, "PRY") or string.find(info.source, "SwordsController")) then
-                -- ตรวจสอบโครงสร้างจำนวนอัปแวลูภายในให้ตรงกับลักษณะฟังก์ชัน v_u_29 ในไฟล์ที่ 3
-                local ups = debug.getupvalues(obj)
-                if #ups >= 3 then
-                    GameParryFunction = obj
-                    break
-                end
+local PRY = require(ReplicatedStorage:FindFirstChild('PRY', true))
+local Network = getupvalue(PRY, 6)
+local Constants = getupvalue(PRY, 3)
+local Convert = getupvalue(PRY, 4)
+
+local Hash1 = getupvalue(PRY, 8)
+local Hash2 = Constants
+local Hash3 = function()
+    local Constant = Convert(Hash2, 'TIME')
+    local Time = tostring(math.floor(workspace:GetServerTimeNow() * 100))
+    local Encoded = {}
+    for i = 1, #Time do
+        local s1 = string.byte(Constant, ((i - 1) % #Constant) + 1)
+        Encoded[i] = string.char(bit32.bxor((string.byte(Time, i) + i) % 256, s1))
+    end
+    return table.concat(Encoded)
+end
+
+-- ==========================================
+-- Parry Remote Retrieval (JobId Obfuscation)
+-- ==========================================
+local ParryRemote = nil
+do
+    local RemoteName = string.gsub(game.JobId, '-', '')
+    local GetRemote = Network.RemoteEvent
+    task.spawn(function()
+        setthreadidentity(2)
+        setfenv(0, getfenv(PRY))
+        setfenv(1, getfenv(PRY))
+        ParryRemote = GetRemote(Network, RemoteName)
+    end)
+end
+
+-- ==========================================
+-- Environment Data Collection (Parry Data)
+-- ==========================================
+local function GetParryData()
+    local viewportSize = Camera.ViewportSize
+    local centerPos = { viewportSize.X / 2, viewportSize.Y / 2 }
+    local events = {}
+
+    local aliveChildren = workspace.Alive:GetChildren()
+    for i = 1, #aliveChildren do
+        local v = aliveChildren[i]
+        if v ~= game.Players.LocalPlayer.Character and v:FindFirstChild("HumanoidRootPart") then
+            local screenPos, isOnScreen = Camera:WorldToScreenPoint(v.HumanoidRootPart.Position)
+            if isOnScreen then
+                events[tostring(v)] = screenPos
             end
         end
     end
+    return Camera.CFrame, events, centerPos
 end
 
--- ระบบจัดการยิงรีโมทโดยอ้างอิงจากโครงสร้างเน็ตเวิร์กแท้
-local function forceFireServer()
-    if not GameParryFunction then return end
+-- ==========================================
+-- Main Parry Request Execution (SendParry)
+-- ==========================================
+local function SendParry()
+    if not ParryRemote then return false end
+    local camCF, events, mousePos = GetParryData()
     
-    pcall(function()
-        local LocalPlayer = game:GetService("Players").LocalPlayer
-        if not LocalPlayer or not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-        
-        local currentCFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
-        local cam = workspace.CurrentCamera
-        local mousePos = {cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2}
-        
-        -- เรียกใช้งานฟังก์ชันยิงข้อมูลของตัวเกมโดยตรง (ตามโครงสร้างพารามิเตอร์ในไฟล์ที่ 3)
-        -- บังคับส่งผ่าน Argument ลำดับที่ถูกต้อง: (CFrame, MousePos, Data_Tables)
-        GameParryFunction(currentCFrame, mousePos, {}, false)
+    local success = pcall(function()
+        ParryRemote:FireServer(
+            Hash1,
+            Hash2,
+            Hash3(),
+            0.025,
+            camCF, -- Uses standard camera CFrame (curve logic removed for optimization)
+            events,
+            mousePos,
+            false
+        )
     end)
+    return success
 end
 
--- หากระบบดักจับฟังก์ชันล้มเหลว ให้ใช้แผนสำรอง (ยิงตรงผ่านรีโมทหลัก)
-local BackupRemote = nil
-pcall(function()
-    BackupRemote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes", 5):FindFirstChild("ParryAttempt")
-end)
-
-local function fireBackupRemote()
-    if not BackupRemote then return end
-    pcall(function()
-        local LocalPlayer = game:GetService("Players").LocalPlayer
-        local currentCFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
-        -- พยายามส่งแพ็กเก็ตแบบคาดเดาโครงสร้างโทเค็นพื้นฐาน
-        BackupRemote:FireServer("Parry", workspace:GetServerTimeNow(), currentCFrame)
-    end)
-end
-
--- ═══ 🔁 AUTOMATIC SPAM SYSTEM (LOOP) ═══
 task.spawn(function()
-    print("🛡️ Network Hook core successfully deployed.")
-    while spamActive do
-        if GameParryFunction then
-            forceFireServer()
-        else
-            -- สลับมาใช้แผนสำรองทันทีหากหาฟังก์ชันหลักไม่เจอ
-            fireBackupRemote()
-        end
-        task.wait(0.01) -- ยิงสแปมด้วยความถี่สูงสุดเพื่อเจาะเข้าเซิร์ฟเวอร์
+    while task.wait(0.5) do
+    SendParry
     end
 end)
