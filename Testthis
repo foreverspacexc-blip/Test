@@ -4,21 +4,28 @@ local Auto_Parry = {
     IsReady = false
 }
 
--- 1. ดักจับ Packet ที่ถูกต้องจากการตีเองครั้งแรก
+-- 1. ฟังก์ชันหาบอล (ยกมาจากโค้ดเก่าของคุณ)
+function Auto_Parry.Get_Ball()
+    local bc = workspace:FindFirstChild("Balls") or workspace:FindFirstChild("TrainingBalls")
+    if bc then
+        for _, b in pairs(bc:GetChildren()) do
+            if b:IsA("BasePart") and (b:GetAttribute("realBall") or b:GetAttribute("target")) then 
+                return b 
+            end
+        end
+    end
+    return nil
+end
+
+-- 2. Hook ดักจับ Packet ตอนตีเองครั้งแรก
 local oldNamecall
 oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
     local method = getnamecallmethod()
     local args = {...}
 
-    -- ตรวจสอบว่าเป็นการเรียก FireServer จากตัวเกมจริง (not checkcaller)
     if not checkcaller() and method == "FireServer" then
-        -- หาจุดสังเกตของ Parry Remote (เช่น มี Argument ตัวแรกเป็น UUID string ยาวๆ)
         if type(args[1]) == "string" and string.match(args[1], "%w+%-%w+%-%w+%-%w+%-%w+") and #args >= 5 then
-            
-            -- [!] ดักจับข้อมูลสำเร็จ
             Auto_Parry.SavedRemote = self
-            
-            -- คัดลอก Arguments ที่สมบูรณ์แบบ (Token, Cache, CFrame แท้) มาเก็บไว้
             Auto_Parry.SavedArgs = args
             
             if not Auto_Parry.IsReady then
@@ -31,34 +38,42 @@ oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
     return oldNamecall(self, ...)
 end)
 
--- 2. ฟังก์ชันสำหรับยิงรีโมท (ใช้งานหลังจากตีโดนแล้ว 1 ที)
+-- 3. ฟังก์ชันสำหรับยิงรีโมท (ใช้งานหลังจากตีโดนแล้ว 1 ที)
 function Auto_Parry.FireParryRemote()
     if not Auto_Parry.IsReady or not Auto_Parry.SavedRemote or not Auto_Parry.SavedArgs then 
-        return -- จะไม่ทำงานจนกว่าผู้เล่นจะตีบอลเองก่อน
+        return 
     end
 
     local character = game:GetService("Players").LocalPlayer.Character
-    local activeBall = Auto_Parry.Get_Ball() -- ฟังก์ชันหาลูกบอลของคุณ
+    local activeBall = Auto_Parry.Get_Ball()
     
     if character and character:FindFirstChild("HumanoidRootPart") and activeBall then
-        -- (Option) คุณสามารถอัปเดตแค่ CFrame ใน SavedArgs ให้หันหน้าหาบอลปัจจุบันได้
-        -- แต่ถ้าเซิร์ฟเวอร์ไม่ได้เช็ค CFrame เข้มงวด สามารถยิง args เดิมที่ดักมาได้เลย
-        
-        -- ใช้ข้อมูลที่ดักมาได้ ยิงกลับไปตรงๆ
         pcall(function()
-            Auto_Parry.SavedRemote:FireServer(unpack(Auto_Parry.SavedArgs))
+            -- ใช้ unpack หรือ table.unpack รองรับ Executor ทุกแบบ
+            local safeUnpack = unpack or table.unpack
+            Auto_Parry.SavedRemote:FireServer(safeUnpack(Auto_Parry.SavedArgs))
         end)
     end
 end
 
--- 3. Loop Auto Parry ของคุณ (ปรับเงื่อนไขระยะห่างตามที่คุณเคยเขียนไว้ได้เลย)
+-- 4. Loop เช็คและสั่งยิง
 task.spawn(function()
-    while task.wait(0.05) do -- แนะนำให้ loop เร็วขึ้นนิดนึง
+    while task.wait(0.05) do 
         if Auto_Parry.IsReady then
-            -- ใส่ Logic เช็คระยะบอล / ทิศทางบอล ที่นี่
-            -- if BallIsTargetingUs and Distance < Threshold then
-                Auto_Parry.FireParryRemote()
-            -- end
+            local activeBall = Auto_Parry.Get_Ball()
+            local character = game:GetService("Players").LocalPlayer.Character
+            
+            if activeBall and character and character:FindFirstChild("HumanoidRootPart") then
+                -- เช็คระยะคร่าวๆ ก่อนยิง (คุณสามารถแก้ตัวเลข 25 เป็นระยะที่คุณต้องการได้)
+                local distance = (character.HumanoidRootPart.Position - activeBall.Position).Magnitude
+                
+                -- ตัวอย่างเงื่อนไข: ถ้าระยะห่างน้อยกว่า 25 และบอลมี attribute 'target' เป็นชื่อเรา
+                -- if distance <= 25 and tostring(activeBall:GetAttribute("target")) == character.Name then
+                    Auto_Parry.FireParryRemote()
+                    -- ใส่ task.wait ตรงนี้เพื่อป้องกันการรัว Remote ถี่เกินไปจนเซิร์ฟเวอร์เตะ
+                    task.wait(0.2) 
+                -- end
+            end
         end
     end
 end)
