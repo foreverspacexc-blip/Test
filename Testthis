@@ -1,18 +1,21 @@
--- ═══ DEEP BAC BYPASS HOOKS (DYNAMIC SCRIPT BYPASS) ════════════════════════════
+-- ═══ 🛡️ ADVANCED NETWORK HOOK & BYPASS SYSTEM ════════════════════════════════
 local hookfunction = hookfunction or (getgenv and getgenv().hookfunction)
+local getgc = getgc or debug.getregistry
 
 local controllersFolder = game:GetService("ReplicatedStorage"):WaitForChild("Controllers", 10)
-local realControllerName = "SwordsController \12" 
+local realControllerName = "SwordsController \12"
 
+-- ดึงชื่อสุ่มจริงของโฟลเดอร์ในเซสชั่นปัจจุบัน
 if controllersFolder then
     for _, child in ipairs(controllersFolder:GetChildren()) do
         if string.sub(child.Name, 1, 16) == "SwordsController" then
-            realControllerName = child.Name 
+            realControllerName = child.Name
             break
         end
     end
 end
 
+-- [BAC Bypass] ส่งค่าจำลองหลอกระบบตรวจจับของเกม
 if hookfunction and getrenv then
     pcall(function()
         local _BAC_oldDebugInfo
@@ -23,177 +26,75 @@ if hookfunction and getrenv then
             end
             return _BAC_oldDebugInfo(f, t)
         end)
-
-        local _BAC_oldGetfenv
-        _BAC_oldGetfenv = hookfunction(getrenv().getfenv, function(l)
-            if l ~= nil and type(l) == "number" and l >= 1 and l <= 10 then return _BAC_oldGetfenv(10) end
-            return _BAC_oldGetfenv(l)
-        end)
     end)
 end
 
--- ═══ 🛡️ DEEP STRUCTURE UPVALUE RESOLVER ═══
-ZX_Parry = { Remote = nil, Function = nil, KeyTable = nil, TransformFn = nil, NetModule = nil, RemoteId = nil, ParryHash = nil, Hooked = false }
+-- ═══ ⚔️ GAME ENGINE INJECTION (ดักจับขั้วสัญญาณตรงจากหน่วยความจำเกม) ═══
+local GameParryFunction = nil
+local spamActive = true
 
-local spamActive = true 
-local lastParryTime = 0
-local lastHitTick = 0
-local parryCooldown = 0.02 -- ปรับความเร็วการส่งให้กระชับขึ้นเพื่อการันตีการบล็อก
+-- ใช้ Garbage Collector (GC) ค้นหาฟังก์ชันแท้ของเกมที่ถูกคอมไพล์ไว้ในระบบ
+if getgc then
+    for _, obj in ipairs(getgc()) do
+        if type(obj) == "function" and islclosure(obj) then
+            local info = debug.getinfo(obj)
+            -- ค้นหาฟังก์ชันที่สืบเนื่องมาจากโมดูล PRY ของเกมโดยตรง
+            if info.source and (string.find(info.source, "PRY") or string.find(info.source, "SwordsController")) then
+                -- ตรวจสอบโครงสร้างจำนวนอัปแวลูภายในให้ตรงกับลักษณะฟังก์ชัน v_u_29 ในไฟล์ที่ 3
+                local ups = debug.getupvalues(obj)
+                if #ups >= 3 then
+                    GameParryFunction = obj
+                    break
+                end
+            end
+        end
+    end
+end
 
-task.spawn(function()
+-- ระบบจัดการยิงรีโมทโดยอ้างอิงจากโครงสร้างเน็ตเวิร์กแท้
+local function forceFireServer()
+    if not GameParryFunction then return end
+    
     pcall(function()
-        local getupvals = debug.getupvalues or getupvalues
-        local SC = controllersFolder and controllersFolder:FindFirstChild(realControllerName)
-        local PRY = SC and SC:WaitForChild("PRY", 10)
-        if not PRY then return end
+        local LocalPlayer = game:GetService("Players").LocalPlayer
+        if not LocalPlayer or not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
         
-        -- โหลดโมดูล PRY ซึ่งในเกมจริงมันคืนค่ากลับมาเป็นฟังก์ชันโดยตรง
-        local pryFunction = require(PRY)
-        ZX_Parry.Function = pryFunction
+        local currentCFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
+        local cam = workspace.CurrentCamera
+        local mousePos = {cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2}
         
-        if type(pryFunction) == "function" then
-            local ups = getupvals(pryFunction)
-            if ups then
-                -- เจาะหาฟังก์ชันเข้ารหัสและตารางเน็ตเวิร์กที่ซ่อนอยู่ในระดับโครงสร้างภายใน
-                for i, v in ipairs(ups) do
-                    if type(v) == "function" then
-                        -- ฟังก์ชันสร้างโทเค็นแปลงเวลาเพื่อส่งให้เซิร์ฟเวอร์
-                        ZX_Parry.TransformFn = v
-                    elseif type(v) == "table" then
-                        -- ค้นหาตารางที่มีสัญญารณหรือเมทอด Remote เช่น RemoteEvent หรือมีฟังก์ชันยิงข้อมูล
-                        if v.RemoteEvent or v.FireServer or rawget(v, "RemoteEvent") then
-                            ZX_Parry.NetModule = v
-                        elseif not ZX_Parry.KeyTable then
-                            ZX_Parry.KeyTable = v
-                        end
-                    elseif type(v) == "string" then
-                        if #v > 15 then
-                            ZX_Parry.ParryHash = v
-                        else
-                            ZX_Parry.RemoteId = v
-                        end
-                    end
-                end
-            end
-        elseif type(pryFunction) == "table" then
-            -- เคสสำรองเผื่อ Executor มองเห็นโมดูลเป็นตารางข้อมูล
-            for _, field in pairs(pryFunction) do
-                if type(field) == "function" then
-                    local ups = getupvals(field)
-                    if ups and #ups >= 4 then
-                        ZX_Parry.TransformFn = ups[4] or ups[3]
-                        ZX_Parry.KeyTable = ups[3] or ups[2]
-                        break
-                    end
-                end
-            end
-        end
-        
-        -- บังคับป้อนดัชนีโครงสร้างสำรอง (Fallback) หากระบบตรวจจับพลาดตัวแปรบางประเภท เพื่อป้องกันค่า nil
-        local rawUps = type(pryFunction) == "function" and getupvals(pryFunction) or {}
-        ZX_Parry.KeyTable = ZX_Parry.KeyTable or rawUps[3] or rawUps[1]
-        ZX_Parry.TransformFn = ZX_Parry.TransformFn or rawUps[4] or rawUps[2]
-        ZX_Parry.NetModule = ZX_Parry.NetModule or rawUps[6] or rawUps[3]
-        ZX_Parry.RemoteId = ZX_Parry.RemoteId or rawUps[7] or "ParryAttempt"
-        ZX_Parry.ParryHash = ZX_Parry.ParryHash or rawUps[8] or "DefaultHashKey"
-
-        -- ตรวจสอบและสถาปนาการเชื่อมต่อ Remote
-        if ZX_Parry.NetModule and type(ZX_Parry.NetModule) == "table" and ZX_Parry.NetModule.RemoteEvent then
-            ZX_Parry.Remote = ZX_Parry.NetModule:RemoteEvent(ZX_Parry.RemoteId)
-        else
-            -- หากคว้าระบบเน็ตเวิร์กจำเพาะไม่ได้ ให้เชื่อมผ่านระบบ Remotes หลักของเกมโดยตรง
-            ZX_Parry.Remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes", 5):FindFirstChild("ParryAttempt")
-        end
-        
-        -- ปลดล็อกสถานะพร้อมใช้งานสคริปต์
-        ZX_Parry.Hooked = true
-        print("🛡️ Advanced Structure Core & Dynamic BAC Bypass Activated Successfully!")
+        -- เรียกใช้งานฟังก์ชันยิงข้อมูลของตัวเกมโดยตรง (ตามโครงสร้างพารามิเตอร์ในไฟล์ที่ 3)
+        -- บังคับส่งผ่าน Argument ลำดับที่ถูกต้อง: (CFrame, MousePos, Data_Tables)
+        GameParryFunction(currentCFrame, mousePos, {}, false)
     end)
+end
+
+-- หากระบบดักจับฟังก์ชันล้มเหลว ให้ใช้แผนสำรอง (ยิงตรงผ่านรีโมทหลัก)
+local BackupRemote = nil
+pcall(function()
+    BackupRemote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes", 5):FindFirstChild("ParryAttempt")
 end)
 
-local cachedToken = nil
-local lastTokenTick = 0
-local function generateToken(currentKey)
-    if not currentKey then return nil end
-    if tick() - lastTokenTick < 0.01 and cachedToken then return cachedToken end
-    
-    -- หากตรวจไม่พบฟังก์ชันแปลงรหัส ให้ใช้ระบบคำนวณจำลองเพื่อเลี่ยงโครงสร้างพัง
-    if not ZX_Parry.TransformFn then
-        local serverTime = workspace:GetServerTimeNow() * 100
-        return tostring(math.floor(serverTime))
-    end
-    
-    local tok, transformed = pcall(ZX_Parry.TransformFn, currentKey, "TIME")
-    if not tok or not transformed then 
-        local serverTime = workspace:GetServerTimeNow() * 100
-        return tostring(math.floor(serverTime))
-    end
-    
-    local serverTime = workspace:GetServerTimeNow() * 100
-    local timeStr = tostring(math.floor(serverTime))
-    local tokenChars = {}
-    for i = 1, #timeStr do
-        local ki = (i - 1) % #transformed + 1
-        tokenChars[i] = string.char(bit32.bxor((string.byte(timeStr, i) + i) % 256, string.byte(transformed, ki)))
-    end
-    cachedToken = table.concat(tokenChars)
-    lastTokenTick = tick()
-    return cachedToken
-end
-
--- ═══ 🛡️ SAFE REMOTEFIRING SYSTEM ═══
-local function fireParryRemote(ignoreCooldown)
-    local curTime = tick()
-    if not ignoreCooldown and (curTime - lastParryTime < parryCooldown) then return end
-    
-    if not ZX_Parry.Hooked then return end
-    
-    local currentKey = "DefaultKey"
+local function fireBackupRemote()
+    if not BackupRemote then return end
     pcall(function()
-        if type(ZX_Parry.KeyTable) == "table" then
-            local keyIndex = ZX_Parry.KeyTable[3] or 1
-            currentKey = ZX_Parry.KeyTable[1] and ZX_Parry.KeyTable[1][keyIndex] or ZX_Parry.KeyTable[keyIndex] or ZX_Parry.KeyTable
-        else
-            currentKey = ZX_Parry.KeyTable or "DefaultKey"
-        end
-    end)
-    
-    local token = generateToken(currentKey)
-    
-    lastParryTime = curTime
-    lastHitTick = curTime
-    
-    local cam = workspace.CurrentCamera
-    local randomMousePos = {
-        (cam.ViewportSize.X / 2) + math.random(-4, 4),
-        (cam.ViewportSize.Y / 2) + math.random(-4, 4)
-    }
-    
-    local LocalPlayer = game:GetService("Players").LocalPlayer
-    if not LocalPlayer or not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-
-    -- ทำระบบส่งข้อมูลคู่ขนาน (ส่งทั้งผ่าน NetModule และยิงตรงเข้าคลังเซิร์ฟเวอร์หลักเพื่อดักทุกทาง)
-    pcall(function() 
-        local targetRemote = ZX_Parry.Remote or game:GetService("ReplicatedStorage").Remotes.ParryAttempt
-        targetRemote:FireServer(
-            ZX_Parry.ParryHash, 
-            currentKey, 
-            token, 
-            0.5, 
-            LocalPlayer.Character.HumanoidRootPart.CFrame, 
-            {}, 
-            randomMousePos, 
-            false
-        ) 
+        local LocalPlayer = game:GetService("Players").LocalPlayer
+        local currentCFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
+        -- พยายามส่งแพ็กเก็ตแบบคาดเดาโครงสร้างโทเค็นพื้นฐาน
+        BackupRemote:FireServer("Parry", workspace:GetServerTimeNow(), currentCFrame)
     end)
 end
 
--- ═══ 🔁 AUTOMATIC SPAM SYSTEM ═══
+-- ═══ 🔁 AUTOMATIC SPAM SYSTEM (LOOP) ═══
 task.spawn(function()
+    print("🛡️ Network Hook core successfully deployed.")
     while spamActive do
-        if ZX_Parry.Hooked then
-            fireParryRemote(false) 
+        if GameParryFunction then
+            forceFireServer()
+        else
+            -- สลับมาใช้แผนสำรองทันทีหากหาฟังก์ชันหลักไม่เจอ
+            fireBackupRemote()
         end
-        task.wait(0.01) -- เร่งความถี่ให้ตอบสนองไวขึ้นต่อทุกเฟรมการปะทะ
+        task.wait(0.01) -- ยิงสแปมด้วยความถี่สูงสุดเพื่อเจาะเข้าเซิร์ฟเวอร์
     end
 end)
