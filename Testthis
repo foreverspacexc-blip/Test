@@ -7,16 +7,16 @@ if hookfunction and getrenv then
         -- Spoof debug.info to hide the execution context
         local _BAC_oldDebugInfo
         _BAC_oldDebugInfo = hookfunction(getrenv().debug.info, function(f, t)
-            if type(f) == "function" then 
-                return "[C]"
-            -- แก้ไขตรงนี้: จากเดิมที่ตรวจชื่อเต็ม เปลี่ยนเป็นตรวจจับคำว่า "SwordsController" ในข้อความแทน
-            elseif f == 4 and t == "s" then 
-                local result = _BAC_oldDebugInfo(f, t)
-                if result and string.find(result, "SwordsController") then
-                    return result -- หรือจะให้ return string ปลอมตัวอื่นตามต้องการได้เลย
-                end
-                return "ReplicatedStorage.Controllers.SwordsController " 
+            if type(f) == "function" then return "[C]" end
+            
+            -- ปรับปรุง: ดึงข้อความจริงออกมาตรวจจับคำว่า "SwordsController" แบบกว้าง
+            local success, result = pcall(_BAC_oldDebugInfo, f, t)
+            if success and type(result) == "string" and string.find(result, "SwordsController") then
+                -- คืนค่าพาทหลอกที่ระบบของเกมคาดหวัง โดยตัดอักขระขยะออก
+                return "ReplicatedStorage.Controllers.SwordsController" 
             end
+
+            if success then return result end
             return _BAC_oldDebugInfo(f, t)
         end)
 
@@ -102,7 +102,7 @@ local function SendParry()
             Hash2,
             Hash3(),
             0.025,
-            camCF, -- Uses standard camera CFrame (curve logic removed for optimization)
+            camCF, 
             events,
             mousePos,
             false
@@ -111,8 +111,9 @@ local function SendParry()
     return success
 end
 
+-- **แก้ไขจุดบกพร่องเรื่องลูปตรงนี้**
 task.spawn(function()
     while task.wait(0.5) do
-    SendParry
+        SendParry() -- ล้อมรอบด้วยวงเล็บ () เพื่อให้ฟังก์ชันทำงานจริง
     end
 end)
