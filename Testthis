@@ -1,119 +1,64 @@
--- ==========================================
--- Debug Spoof / Anti-Cheat Bypass Section
--- ==========================================
-local hookfunction = hookfunction or (getgenv and getgenv().hookfunction)
-if hookfunction and getrenv then
-    pcall(function()
-        -- Spoof debug.info to hide the execution context
-        local _BAC_oldDebugInfo
-        _BAC_oldDebugInfo = hookfunction(getrenv().debug.info, function(f, t)
-            if type(f) == "function" then return "[C]" end
+local Auto_Parry = {
+    SavedRemote = nil,
+    SavedArgs = nil,
+    IsReady = false
+}
+
+-- 1. ดักจับ Packet ที่ถูกต้องจากการตีเองครั้งแรก
+local oldNamecall
+oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+
+    -- ตรวจสอบว่าเป็นการเรียก FireServer จากตัวเกมจริง (not checkcaller)
+    if not checkcaller() and method == "FireServer" then
+        -- หาจุดสังเกตของ Parry Remote (เช่น มี Argument ตัวแรกเป็น UUID string ยาวๆ)
+        if type(args[1]) == "string" and string.match(args[1], "%w+%-%w+%-%w+%-%w+%-%w+") and #args >= 5 then
             
-            -- ปรับปรุง: ดึงข้อความจริงออกมาตรวจจับคำว่า "SwordsController" แบบกว้าง
-            local success, result = pcall(_BAC_oldDebugInfo, f, t)
-            if success and type(result) == "string" and string.find(result, "SwordsController") then
-                -- คืนค่าพาทหลอกที่ระบบของเกมคาดหวัง โดยตัดอักขระขยะออก
-                return "ReplicatedStorage.Controllers.SwordsController" 
-            end
-
-            if success then return result end
-            return _BAC_oldDebugInfo(f, t)
-        end)
-
-        -- Spoof getfenv to prevent environment tracing
-        local _BAC_oldGetfenv
-        _BAC_oldGetfenv = hookfunction(getrenv().getfenv, function(l)
-            if l ~= nil and type(l) == "number" and l >= 1 and l <= 10 then return _BAC_oldGetfenv(10) end
-            return _BAC_oldGetfenv(l)
-        end)
-    end)
-end
-
--- ==========================================
--- Initialization & Encryption/Hash Setup
--- ==========================================
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Camera = workspace.CurrentCamera
-
-local PRY = require(ReplicatedStorage:FindFirstChild('PRY', true))
-local Network = getupvalue(PRY, 6)
-local Constants = getupvalue(PRY, 3)
-local Convert = getupvalue(PRY, 4)
-
-local Hash1 = getupvalue(PRY, 8)
-local Hash2 = Constants
-local Hash3 = function()
-    local Constant = Convert(Hash2, 'TIME')
-    local Time = tostring(math.floor(workspace:GetServerTimeNow() * 100))
-    local Encoded = {}
-    for i = 1, #Time do
-        local s1 = string.byte(Constant, ((i - 1) % #Constant) + 1)
-        Encoded[i] = string.char(bit32.bxor((string.byte(Time, i) + i) % 256, s1))
-    end
-    return table.concat(Encoded)
-end
-
--- ==========================================
--- Parry Remote Retrieval (JobId Obfuscation)
--- ==========================================
-local ParryRemote = nil
-do
-    local RemoteName = string.gsub(game.JobId, '-', '')
-    local GetRemote = Network.RemoteEvent
-    task.spawn(function()
-        setthreadidentity(2)
-        setfenv(0, getfenv(PRY))
-        setfenv(1, getfenv(PRY))
-        ParryRemote = GetRemote(Network, RemoteName)
-    end)
-end
-
--- ==========================================
--- Environment Data Collection (Parry Data)
--- ==========================================
-local function GetParryData()
-    local viewportSize = Camera.ViewportSize
-    local centerPos = { viewportSize.X / 2, viewportSize.Y / 2 }
-    local events = {}
-
-    local aliveChildren = workspace.Alive:GetChildren()
-    for i = 1, #aliveChildren do
-        local v = aliveChildren[i]
-        if v ~= game.Players.LocalPlayer.Character and v:FindFirstChild("HumanoidRootPart") then
-            local screenPos, isOnScreen = Camera:WorldToScreenPoint(v.HumanoidRootPart.Position)
-            if isOnScreen then
-                events[tostring(v)] = screenPos
+            -- [!] ดักจับข้อมูลสำเร็จ
+            Auto_Parry.SavedRemote = self
+            
+            -- คัดลอก Arguments ที่สมบูรณ์แบบ (Token, Cache, CFrame แท้) มาเก็บไว้
+            Auto_Parry.SavedArgs = args
+            
+            if not Auto_Parry.IsReady then
+                Auto_Parry.IsReady = true
+                print("🎯 [Bypass Success] Captured valid remote and arguments from the first hit!")
             end
         end
     end
-    return Camera.CFrame, events, centerPos
-end
 
--- ==========================================
--- Main Parry Request Execution (SendParry)
--- ==========================================
-local function SendParry()
-    if not ParryRemote then return false end
-    local camCF, events, mousePos = GetParryData()
+    return oldNamecall(self, ...)
+end)
+
+-- 2. ฟังก์ชันสำหรับยิงรีโมท (ใช้งานหลังจากตีโดนแล้ว 1 ที)
+function Auto_Parry.FireParryRemote()
+    if not Auto_Parry.IsReady or not Auto_Parry.SavedRemote or not Auto_Parry.SavedArgs then 
+        return -- จะไม่ทำงานจนกว่าผู้เล่นจะตีบอลเองก่อน
+    end
+
+    local character = game:GetService("Players").LocalPlayer.Character
+    local activeBall = Auto_Parry.Get_Ball() -- ฟังก์ชันหาลูกบอลของคุณ
     
-    local success = pcall(function()
-        ParryRemote:FireServer(
-            Hash1,
-            Hash2,
-            Hash3(),
-            0.025,
-            camCF, 
-            events,
-            mousePos,
-            false
-        )
-    end)
-    return success
+    if character and character:FindFirstChild("HumanoidRootPart") and activeBall then
+        -- (Option) คุณสามารถอัปเดตแค่ CFrame ใน SavedArgs ให้หันหน้าหาบอลปัจจุบันได้
+        -- แต่ถ้าเซิร์ฟเวอร์ไม่ได้เช็ค CFrame เข้มงวด สามารถยิง args เดิมที่ดักมาได้เลย
+        
+        -- ใช้ข้อมูลที่ดักมาได้ ยิงกลับไปตรงๆ
+        pcall(function()
+            Auto_Parry.SavedRemote:FireServer(unpack(Auto_Parry.SavedArgs))
+        end)
+    end
 end
 
--- **แก้ไขจุดบกพร่องเรื่องลูปตรงนี้**
+-- 3. Loop Auto Parry ของคุณ (ปรับเงื่อนไขระยะห่างตามที่คุณเคยเขียนไว้ได้เลย)
 task.spawn(function()
-    while task.wait(0.5) do
-        SendParry() -- ล้อมรอบด้วยวงเล็บ () เพื่อให้ฟังก์ชันทำงานจริง
+    while task.wait(0.05) do -- แนะนำให้ loop เร็วขึ้นนิดนึง
+        if Auto_Parry.IsReady then
+            -- ใส่ Logic เช็คระยะบอล / ทิศทางบอล ที่นี่
+            -- if BallIsTargetingUs and Distance < Threshold then
+                Auto_Parry.FireParryRemote()
+            -- end
+        end
     end
 end)
