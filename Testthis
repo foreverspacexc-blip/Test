@@ -1,10 +1,16 @@
 local Auto_Parry = {
     SavedRemote = nil,
-    SavedArgs = nil,
-    IsReady = false
+    IsReady = false,
+    ParryTimeCache = 0.5 -- อิงจาก v_u_80 ใน Source code (ค่าเริ่มต้นปกติคือ 0.5)
 }
 
--- 1. ฟังก์ชันหาบอล (ยกมาจากโค้ดเก่าของคุณ)
+-- ดึง Services ที่จำเป็นให้ตรงกับ SwordsController
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local CollectionService = game:GetService("CollectionService")
+local LocalPlayer = Players.LocalPlayer
+
+-- 1. ฟังก์ชันหาข้อมูลความเร็ว/ประเภทบอล
 function Auto_Parry.Get_Ball()
     local bc = workspace:FindFirstChild("Balls") or workspace:FindFirstChild("TrainingBalls")
     if bc then
@@ -17,95 +23,139 @@ function Auto_Parry.Get_Ball()
     return nil
 end
 
--- 2. Hook ดักจับ Packet ตอนตีเองครั้งแรก
-local oldNamecall
-oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-    local method = getnamecallmethod()
-    local args = {...}
-
-    if not checkcaller() and method == "FireServer" then
-        if type(args[1]) == "string" and string.match(args[1], "%w+%-%w+%-%w+%-%w+%-%w+") and #args >= 5 then
-            Auto_Parry.SavedRemote = self
-            Auto_Parry.SavedArgs = args
-            
-            if not Auto_Parry.IsReady then
-                Auto_Parry.IsReady = true
-                print("🎯 [Bypass Success] Captured valid remote and arguments from the first hit!")
-            end
-        end
-    end
-
-    return oldNamecall(self, ...)
-end)
-
-local function BuildFreshAliveCache(cam)
+-- 2. ฟังก์ชันจำลองตาราง Target Positions (Alive Cache) ให้เหมือนจริงตาม Source Code ทุกประการ
+local function BuildExactTargetCache(cam)
     local freshCache = {}
-    local aliveFolder = workspace:FindFirstChild("Alive")
-    local myChar = game:GetService("Players").LocalPlayer.Character
-    
-    if aliveFolder and cam then
-        -- ลูปหาทุกคนที่ยังมีชีวิตอยู่เหมือนที่ SwordsController ทำ
-        for _, v in ipairs(aliveFolder:GetChildren()) do
-            if v ~= myChar and v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") then
-                -- แปลงตำแหน่ง 3D เป็นพิกัดหน้าจอ 2D (Vector3)
-                local screenPos = cam:WorldToScreenPoint(v.HumanoidRootPart.Position)
-                
-                -- ใช้ชื่อตัวละครเป็น Key ในการเก็บข้อมูล ตามแบบ Source Code ตัวจริง
-                -- (หากเกมใช้ UUID สามารถเปลี่ยนเป็น v:GetAttribute("UUID") ได้)
-                freshCache[v.Name] = screenPos
+    if not cam then return freshCache end
+
+    local currentMode = workspace:GetAttribute("CurrentlySelectedMode")
+    local myChar = LocalPlayer.Character
+    local isLobbyTraining = LocalPlayer:GetAttribute("LobbyTraining") or LocalPlayer:GetAttribute("LobbyParry")
+
+    -- กรณีเล่นโหมด Lobby Training
+    if isLobbyTraining then
+        local deadFolder = workspace:FindFirstChild("Dead")
+        if deadFolder then
+            for _, v in ipairs(deadFolder:GetChildren()) do
+                local p = Players:GetPlayerFromCharacter(v)
+                if p and p:GetAttribute("LobbyTraining") and v:FindFirstChild("HumanoidRootPart") then
+                    freshCache[v.Name] = cam:WorldToScreenPoint(v.HumanoidRootPart.Position)
+                end
+            end
+        end
+        for _, v in ipairs(CollectionService:GetTagged("LobbyTrainingTarget")) do
+            if v:IsA("BasePart") then
+                freshCache[v.Name] = cam:WorldToScreenPoint(v.Position)
+            end
+        end
+
+    -- กรณีเล่นโหมดฟุตบอล Hovergoal / Soccer
+    elseif currentMode == "Hovergoal" or currentMode == "Soccer" then
+        -- หาประตูของฝั่งตรงข้าม
+        -- ตัวแปรจำลองระบบทีม (ปกติดึงจาก ThreadSafeTargetingHelper แต่เรา Hardcode เช็กชื่อประตูแทนได้)
+        for _, v in ipairs(CollectionService:GetTagged("HovergoalGoal")) do
+            if v:FindFirstChild("Target") then
+                freshCache[v.Name] = cam:WorldToScreenPoint(v.Target.Position)
+            end
+        end
+        -- ดึงพิกัดพวกซอมบี้ที่เกิดเพิ่มมาในโหมดนี้
+        local aliveFolder = workspace:FindFirstChild("Alive")
+        if aliveFolder then
+            for _, v in ipairs(aliveFolder:GetChildren()) do
+                if v:FindFirstChild("HumanoidRootPart") and v:GetAttribute("IsTheRisingZombie") then
+                    freshCache[v.Name] = cam:WorldToScreenPoint(v.HumanoidRootPart.Position)
+                end
+            end
+        end
+
+    -- กรณีโหมด Normal / Rank Match ทั่วไป (ดึงจากโฟลเดอร์ Alive ปกติ)
+    else
+        local aliveFolder = workspace:FindFirstChild("Alive")
+        if aliveFolder then
+            for _, v in ipairs(aliveFolder:GetChildren()) do
+                if v ~= myChar and v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") then
+                    freshCache[v.Name] = cam:WorldToScreenPoint(v.HumanoidRootPart.Position)
+                end
             end
         end
     end
+
     return freshCache
 end
 
--- 3. ฟังก์ชันสำหรับยิงรีโมท (ใช้งานหลังจากตีโดนแล้ว 1 ที)
+-- 3. Hook ดักจับช่องทางรีโมทที่ถูกต้องเจาะจงไปที่ ParryAttempt
+local oldNamecall
+oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+    local method = getnamecallmethod()
+    
+    if not checkcaller() and method == "FireServer" then
+        -- เจาะจงบล็อกชื่อและตำแหน่งของ Remote บรรทัดที่ 462: Remotes.ParryAttempt:FireServer()
+        if self.Name == "ParryAttempt" or (self.Parent and self.Parent.Name == "Remotes" and self.Name == "ParryAttempt") then
+            Auto_Parry.SavedRemote = self
+            if not Auto_Parry.IsReady then
+                Auto_Parry.IsReady = true
+                print("🎯 [Bypass Connected] Successfully hooked the real ParryAttempt Remote!")
+            end
+        end
+    end
+    return oldNamecall(self, ...)
+end)
+
+-- 4. ฟังก์ชันหลักในการจำลองการยิงแบบจำลองโครงสร้าง PRY เข้าเซิร์ฟเวอร์
 function Auto_Parry.FireParryRemote()
-    if not Auto_Parry.IsReady or not Auto_Parry.SavedRemote or not Auto_Parry.SavedArgs then 
+    if not Auto_Parry.IsReady or not Auto_Parry.SavedRemote then 
         return 
     end
 
-    local character = game:GetService("Players").LocalPlayer.Character
-    local activeBall = Auto_Parry.Get_Ball()
-    local cam = workspace.CurrentCamera
-    
-    if character and character:FindFirstChild("HumanoidRootPart") and activeBall and cam then
-        pcall(function()
-            -- คัดลอกตาราง Args ออกมาเพื่อไม่ให้กวนของเดิม
-            local currentArgs = {}
-            for i, v in ipairs(Auto_Parry.SavedArgs) do
-                currentArgs[i] = v
-            end
-            
-            -- [1] สอดไส้ CFrame ปัจจุบัน (ปกติอยู่ตำแหน่งที่ 5)
-            if currentArgs[5] then
-                local targetPos = activeBall.Position
-                currentArgs[5] = CFrame.lookAt(character.HumanoidRootPart.Position, targetPos)
-            end
-            
-            -- [2] สอดไส้ Alive Cache ใหม่ล่าสุด (ปกติอยู่ตำแหน่งที่ 6)
-            if currentArgs[6] and type(currentArgs[6]) == "table" then
-                currentArgs[6] = BuildFreshAliveCache(cam)
-            end
-            
-            -- [3] สอดไส้ตำแหน่ง Mouse ให้สมจริง (ปกติอยู่ตำแหน่งที่ 7)
-            if currentArgs[7] then
-                -- สุ่มขยับเมาส์นิดหน่อยรอบๆ กึ่งกลางจอ ให้ดูเหมือนคนเล่นจริง
-                currentArgs[7] = { 
-                    (cam.ViewportSize.X / 2) + math.random(-15, 15), 
-                    (cam.ViewportSize.Y / 2) + math.random(-15, 15) 
-                }
-            end
+    local character = LocalPlayer.Character
+    -- ตรวจสอบ State/Cooldown ป้องกันการยิงสแปมจนโดนแบน (อ้างอิงบรรทัดที่ 124-140)
+    if character and character:GetAttribute("Stunned") then return end
+    if character and character:GetAttribute("DoNotParry") then return end
 
-            -- ยิงแพ็กเก็ตที่อัปเดตข้อมูลให้เป็นปัจจุบันแล้ว
-            local safeUnpack = unpack or table.unpack
-            Auto_Parry.SavedRemote:FireServer(safeUnpack(currentArgs))
+    local cam = workspace.CurrentCamera
+    if character and character:FindFirstChild("HumanoidRootPart") and cam then
+        pcall(function()
+            -- สร้างโครงสร้าง Arguments ให้เหมือนกับโครงสร้างฟังก์ชัน PRY ตัวจริงใน Module 
+            -- อ้างอิงจากบรรทัดที่ 265: v_u_29(v_u_80, v_u_32.CFrame, v89, v99, p75)
+            
+            -- Argument 1: ParryTime (คำนวณตามจำนวนการสกัดกั้น หรือใช้ค่า Base 0.5)
+            local parryTime = Auto_Parry.ParryTimeCache
+            local serverParryCount = character:GetAttribute("ServerParryCount") or 0
+            if serverParryCount == 0 then parryTime = 1.5
+            elseif serverParryCount == 1 then parryTime = 1.25
+            elseif serverParryCount == 2 then parryTime = 1.0
+            end
+            
+            -- Argument 2: Camera CFrame (ตัวเก่าคุณใช้ lookAt ตัวละครซึ่งผิด!)
+            local cameraCFrame = cam.CFrame
+            
+            -- Argument 3: Target Positions Table (ตารางพิกัดผู้เล่นอื่นแบบอัปเดตเรียลไทม์)
+            local targetPositions = BuildExactTargetCache(cam)
+            
+            -- Argument 4: Mouse Position (ใช้พิกัดป้อนเข้าจากหน้าจอจริงของระบบ)
+            local mouseLoc = UserInputService:GetMouseLocation()
+            local mousePosition = { mouseLoc.X, mouseLoc.Y }
+            
+            -- Argument 5: Special Flag (ค่า p75 จากอีเวนต์การกดบล็อก โดยทั่วไปส่งค่า false หรือ nil ได้)
+            local specialFlag = false 
+
+            -- จัดเตรียม Packets เพื่อยิงเข้าเซิร์ฟเวอร์ตรงๆ ผ่านตัวแปรที่ดักจับได้
+            Auto_Parry.SavedRemote:FireServer(
+                parryTime,
+                cameraCFrame,
+                targetPositions,
+                mousePosition,
+                specialFlag
+            )
         end)
     end
 end
 
+-- 5. สั่งรันลูปสำหรับการคลิกโจมตีอัตโนมัติ (สอดคล้องตามเงื่อนไขเซิร์ฟเวอร์)
 task.spawn(function()
     while task.wait(0.05) do
-        Auto_Parry.FireParryRemote()
+        if Auto_Parry.IsReady then
+            Auto_Parry.FireParryRemote()
+        end
     end
 end)
