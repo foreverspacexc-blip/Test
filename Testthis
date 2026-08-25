@@ -38,6 +38,27 @@ oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
     return oldNamecall(self, ...)
 end)
 
+local function BuildFreshAliveCache(cam)
+    local freshCache = {}
+    local aliveFolder = workspace:FindFirstChild("Alive")
+    local myChar = game:GetService("Players").LocalPlayer.Character
+    
+    if aliveFolder and cam then
+        -- ลูปหาทุกคนที่ยังมีชีวิตอยู่เหมือนที่ SwordsController ทำ
+        for _, v in ipairs(aliveFolder:GetChildren()) do
+            if v ~= myChar and v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") then
+                -- แปลงตำแหน่ง 3D เป็นพิกัดหน้าจอ 2D (Vector3)
+                local screenPos = cam:WorldToScreenPoint(v.HumanoidRootPart.Position)
+                
+                -- ใช้ชื่อตัวละครเป็น Key ในการเก็บข้อมูล ตามแบบ Source Code ตัวจริง
+                -- (หากเกมใช้ UUID สามารถเปลี่ยนเป็น v:GetAttribute("UUID") ได้)
+                freshCache[v.Name] = screenPos
+            end
+        end
+    end
+    return freshCache
+end
+
 -- 3. ฟังก์ชันสำหรับยิงรีโมท (ใช้งานหลังจากตีโดนแล้ว 1 ที)
 function Auto_Parry.FireParryRemote()
     if not Auto_Parry.IsReady or not Auto_Parry.SavedRemote or not Auto_Parry.SavedArgs then 
@@ -46,34 +67,45 @@ function Auto_Parry.FireParryRemote()
 
     local character = game:GetService("Players").LocalPlayer.Character
     local activeBall = Auto_Parry.Get_Ball()
+    local cam = workspace.CurrentCamera
     
-    if character and character:FindFirstChild("HumanoidRootPart") and activeBall then
+    if character and character:FindFirstChild("HumanoidRootPart") and activeBall and cam then
         pcall(function()
-            -- ใช้ unpack หรือ table.unpack รองรับ Executor ทุกแบบ
+            -- คัดลอกตาราง Args ออกมาเพื่อไม่ให้กวนของเดิม
+            local currentArgs = {}
+            for i, v in ipairs(Auto_Parry.SavedArgs) do
+                currentArgs[i] = v
+            end
+            
+            -- [1] สอดไส้ CFrame ปัจจุบัน (ปกติอยู่ตำแหน่งที่ 5)
+            if currentArgs[5] then
+                local targetPos = activeBall.Position
+                currentArgs[5] = CFrame.lookAt(character.HumanoidRootPart.Position, targetPos)
+            end
+            
+            -- [2] สอดไส้ Alive Cache ใหม่ล่าสุด (ปกติอยู่ตำแหน่งที่ 6)
+            if currentArgs[6] and type(currentArgs[6]) == "table" then
+                currentArgs[6] = BuildFreshAliveCache(cam)
+            end
+            
+            -- [3] สอดไส้ตำแหน่ง Mouse ให้สมจริง (ปกติอยู่ตำแหน่งที่ 7)
+            if currentArgs[7] then
+                -- สุ่มขยับเมาส์นิดหน่อยรอบๆ กึ่งกลางจอ ให้ดูเหมือนคนเล่นจริง
+                currentArgs[7] = { 
+                    (cam.ViewportSize.X / 2) + math.random(-15, 15), 
+                    (cam.ViewportSize.Y / 2) + math.random(-15, 15) 
+                }
+            end
+
+            -- ยิงแพ็กเก็ตที่อัปเดตข้อมูลให้เป็นปัจจุบันแล้ว
             local safeUnpack = unpack or table.unpack
-            Auto_Parry.SavedRemote:FireServer(safeUnpack(Auto_Parry.SavedArgs))
+            Auto_Parry.SavedRemote:FireServer(safeUnpack(currentArgs))
         end)
     end
 end
 
--- 4. Loop เช็คและสั่งยิง
 task.spawn(function()
-    while task.wait(0.05) do 
-        if Auto_Parry.IsReady then
-            local activeBall = Auto_Parry.Get_Ball()
-            local character = game:GetService("Players").LocalPlayer.Character
-            
-            if activeBall and character and character:FindFirstChild("HumanoidRootPart") then
-                -- เช็คระยะคร่าวๆ ก่อนยิง (คุณสามารถแก้ตัวเลข 25 เป็นระยะที่คุณต้องการได้)
-                local distance = (character.HumanoidRootPart.Position - activeBall.Position).Magnitude
-                
-                -- ตัวอย่างเงื่อนไข: ถ้าระยะห่างน้อยกว่า 25 และบอลมี attribute 'target' เป็นชื่อเรา
-                -- if distance <= 25 and tostring(activeBall:GetAttribute("target")) == character.Name then
-                    Auto_Parry.FireParryRemote()
-                    -- ใส่ task.wait ตรงนี้เพื่อป้องกันการรัว Remote ถี่เกินไปจนเซิร์ฟเวอร์เตะ
-                    task.wait(0.2) 
-                -- end
-            end
-        end
+    while task.wait(0.05) do
+        Auto_Parry.FireParryRemote()
     end
 end)
