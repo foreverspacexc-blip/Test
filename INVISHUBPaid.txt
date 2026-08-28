@@ -1,0 +1,33 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local url = "https://raw.githubusercontent.com/foreverspacexc-blip/Test/refs/heads/main/INVISBladeBallMain.txt.obfuscated.luau.txt"
+
+local function kickError()
+    LocalPlayer:Kick("i updating script now please wait 5-10 minutes")
+end
+
+local ok, code = pcall(function()
+    return game:HttpGet(url)
+end)
+
+if not ok then
+    print("[HTTP ERROR] " .. tostring(code))
+    kickError()
+    return
+end
+
+local fn, err = loadstring(code)
+
+if not fn then
+    print("[LOADSTRING ERROR] " .. tostring(err))
+    kickError()
+    return
+end
+
+local success, runtimeError = pcall(fn)
+
+if not success then
+    print("[RUNTIME ERROR] " .. tostring(runtimeError))
+    kickError()
+end
