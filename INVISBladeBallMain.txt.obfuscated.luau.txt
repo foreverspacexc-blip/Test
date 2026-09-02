@@ -1,276 +1,124 @@
-local iIlojloi=(getfenv and getfenv(1)) or _ENV or _G
-local Lli1lojiIlL00,lII01OLoLIOj0=string.byte,string.char
-local function iiOoO1Ljolo0o(lI0ILolLli0,LjiolL1Lll)
-local ijjiijjLloj=""
-local jol0LIO1jI0=#LjiolL1Lll
-for jiLLL1IjoiLlj=1,#lI0ILolLli0 do ijjiijjLloj=ijjiijjLloj..lII01OLoLIOj0((Lli1lojiIlL00(lI0ILolLli0,jiLLL1IjoiLlj)-Lli1lojiIlL00(LjiolL1Lll,(jiLLL1IjoiLlj-1)%jol0LIO1jI0+1))%256) end
-return ijjiijjLloj
+-- [[ CUSTOM COOL BLACK & RED LOADING GUI ]] --
+
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+
+-- สร้าง ScreenGui ป้องกันการลบเมื่อตาย
+local LoadingScreen = Instance.new("ScreenGui")
+LoadingScreen.Name = "InvisHubLoading"
+LoadingScreen.Parent = CoreGui
+LoadingScreen.IgnoreGuiInset = true
+
+-- พื้นหลังหลัก (สีดำสนิท เท่ๆ)
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(1, 0, 1, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = LoadingScreen
+
+-- เอฟเฟกต์แสงไฟสีแดงด้านหลัง (Glow/Gradient)
+local UIGradient = Instance.new("UIGradient")
+UIGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 20, 20)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(40, 10, 10)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 15, 15))
+})
+UIGradient.Rotation = 45
+UIGradient.Parent = MainFrame
+
+-- วงกลมสีขาว (ไอคอนโหลดดิ้ง)
+local LoadingCircle = Instance.new("Frame")
+LoadingCircle.Name = "LoadingCircle"
+LoadingCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+LoadingCircle.Position = UDim2.new(0.5, 0, 0.45, 0)
+LoadingCircle.Size = UDim2.new(0, 80, 0, 80)
+LoadingCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+LoadingCircle.BorderSizePixel = 0
+LoadingCircle.Parent = MainFrame
+
+-- ทำให้เป็นวงกลมสมบูรณ์
+local CircleCorner = Instance.new("UICorner")
+CircleCorner.CornerRadius = UDim.new(1, 0)
+CircleCorner.Parent = LoadingCircle
+
+-- เส้นขอบเรืองแสงสีแดงรอบวงกลม
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(255, 0, 0)
+UIStroke.Thickness = 3
+UIStroke.Transparency = 0
+UIStroke.Parent = LoadingCircle
+
+-- ข้อความไตเติ้ล
+local TitleText = Instance.new("TextLabel")
+TitleText.Size = UDim2.new(1, 0, 0, 40)
+TitleText.Position = UDim2.new(0, 0, 0.55, 10)
+TitleText.BackgroundTransparency = 1
+TitleText.Text = "INVIS HUB"
+TitleText.TextColor3 = Color3.fromRGB(255, 0, 0) -- สีแดงเด่นๆ
+TitleText.TextSize = 28
+TitleText.Font = Enum.Font.GothamBold
+TitleText.TextSpacing = 6
+TitleText.Parent = MainFrame
+
+-- ข้อความสถานะ
+local StatusText = Instance.new("TextLabel")
+StatusText.Size = UDim2.new(1, 0, 0, 20)
+StatusText.Position = UDim2.new(0, 0, 0.60, 15)
+StatusText.BackgroundTransparency = 1
+StatusText.Text = "Connecting to services..."
+StatusText.TextColor3 = Color3.fromRGB(150, 150, 150)
+StatusText.TextSize = 14
+StatusText.Font = Enum.Font.Gotham
+StatusText.Parent = MainFrame
+
+-- [[ SYSTEM ANIMATIONS ]] --
+
+-- อนิเมชั่นวงกลมหมุนและเต้นตามจังหวะ (Pulse & Rotate)
+local rotateInfo = TweenInfo.new(1.5, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1)
+local rotateTween = TweenService:Create(LoadingCircle, rotateInfo, {Rotation = 360})
+rotateTween:Play()
+
+local pulseInfo = TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
+local pulseTween = TweenService:Create(LoadingCircle, pulseInfo, {Size = UDim2.new(0, 90, 0, 90)})
+pulseTween:Play()
+
+-- ฟังก์ชันจำลองการโหลดให้ดูสมจริงและเท่
+local stages = {
+    "Checking execution environment...",
+    "Bypassing Anti-Cheat...",
+    "Injecting InvisHub Core...",
+    "Ready to Blade Ball!"
+}
+
+for i, status in ipairs(stages) do
+    StatusText.Text = status
+    task.wait(0.8) -- หน่วงเวลาแต่ละขั้นให้ดูเนียน
 end
-local jIi1Ljl1Ll=iIlojloi[iiOoO1Ljolo0o("\227\023\025\168v\188","p\178\173C\019H")]
-local l1I0iil0oOiIj=iIlojloi[iiOoO1Ljolo0o("\023\216\203\r\210\192","\164dY")][iiOoO1Ljolo0o("\141\158n","\026)\012CYY")]
-local ILlLi0I=iIlojloi[iiOoO1Ljolo0o("\155-\129\247\140","'\204\031\139")][iiOoO1Ljolo0o("Y\246Y\240W\251","\246\135\235\141")]
-local jL1L01ILi=iIlojloi[iiOoO1Ljolo0o("\n\2387\026","\157\141\195\178\207\153\202")][iiOoO1Ljolo0o("\196\239!\150_","^\131\178'\237E\217")]
-local I1lj1ji00=iIlojloi[iiOoO1Ljolo0o("m,\004\251f\031\251\248","\249\189\150\134")]
-local LIjoLIlllI=iIlojloi[iiOoO1Ljolo0o("\030_j\208a","\185\237\248a\239\215k")]
-local ijOOIliLI1OL=Lli1lojiIlL00("P")+jIi1Ljl1Ll("#",0,0,0)*16+I1lj1ji00("5368")*3+(lII01OLoLIOj0(80,73)=="PI" and 3268 or 11)
-local IIOj0OjjLlIIi=iIlojloi[iiOoO1Ljolo0o(".\142\159|\201","\186-=\016d\194|")][iiOoO1Ljolo0o("m\209\016h","\253p\173")] or function(...) return {n=jIi1Ljl1Ll("#",...),...} end
-local jjjIojjjLO=iIlojloi[iiOoO1Ljolo0o("\194\196&\186\200","Nc\196")][iiOoO1Ljolo0o(":1\195\186\1710","\197\195SYH")] or iIlojloi[iiOoO1Ljolo0o("\205R\142\2260\160","X\228\030\129\2055")]
-local LI1ljoOOljl0="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-local function jiOO0i(L1OLLoi10ooj)
-local iijI1lijiilo={}
-for jlL0ij01iiIji=1,64 do iijI1lijiilo[Lli1lojiIlL00(LI1ljoOOljl0,jlL0ij01iiIji)]=jlL0ij01iiIji-1 end
-local Ij1lILIo,I1L0lo,IO10i1I,l1i100ojI={},0,0,0
-for jlL0ij01iiIji=1,#L1OLLoi10ooj do
-local I11olIo11LIllI=iijI1lijiilo[Lli1lojiIlL00(L1OLLoi10ooj,jlL0ij01iiIji)]
-if I11olIo11LIllI then
-I1L0lo=I1L0lo*64+I11olIo11LIllI
-IO10i1I=IO10i1I+6
-if IO10i1I>=8 then IO10i1I=IO10i1I-8 l1i100ojI=l1i100ojI+1 Ij1lILIo[l1i100ojI]=lII01OLoLIOj0(jL1L01ILi(I1L0lo/(2^IO10i1I))%256) I1L0lo=I1L0lo%(2^IO10i1I) end
-end
-end
-return ILlLi0I(Ij1lILIo)
-end
-local jl1llo="6eweHsYEZSJNa6WlSAx1RUI6KYcRfIJiPyMa3K+KeevulZlwL+rbS+f8NnyojUK3uWIUxpy+cS3R8aopWfXc+AlSuW/sMrZjtVCzVuUEntDyz+TO9ZpCNihlgyNQfFIfoMjum5WcFoVnQDPZqpdwkjWEi+QNY3YxVi6jckIJC3P2EU+zyoIsCf5k9nYy66ipdBht9IQCM5trETR0j+h/fScbHxMa6Ko5HYfa2xmsTskEtY4NKfESfZu+ho1Jvdej8raffq8SgDBHBa0yqsaiyPtfR28IwkwNAzjJrEDW46BZ3gxdtXlb46OkwF0ZsWQ8/udWqaDYSOZSxaPuu5hef3GH8/iQHUkB+m3wiNkVxqcfdyUaHEDYv+/sF1BqnrL2383hmh+ufiU2w4AR6U3NyeLb4rDvip4kAg2oLBtHL57vcWP4h6NHgEdRIc+vKRF5NSwTUXTajGfQRD3XZuzOkr2gpK7kZh6kp0wlUhmAD/JG0JWpgiMilQnq9Oqyl4cp5kYLT+DqDFe+zImjRU3ftMvUAbFUw2kDFOAvt0DzkQROIxrIftE3JrcmW8MIu3GCVOZ0+2GWuwcD9QbuZlNAkVTqiomHmZ6AjXf3iZLLZrYkRuTMrjoEOg37pTjrRxBgax6EbJL6uNdeZWNgMc8DQbwU44Wv9PQV4Mbem9oBTN+4IqRyPJBlmMiRX9Iu+Rk6tV3wByjRj2blXSQdMF6wvTmR1vN6f/MME9Adyiek+SJW6qmBVBvyIu3vm0vf0orJj9Kv0jfPvN9h+5K0qych3E5mA8CsBHwpsUpCKZ+axvSsUpOXg2jgB24qp++iwhi9ZkNGwtwL3F7d5TbDrLr3YsOBn6nNIQ7N63rXagdw8OD75jw+HvmhMifsHg52MllFOxagOc2EjmeH7yx2VGIJEb0jmRg8h1xjSQcAG753Nxr38OojG8qMi5jUjXTK5IsnnvglAIC3z6yAavAgIFS93ESR+5nP5AkEd6kHVoIZn3zqnDJr393QsUbX+Tkf+ak4L0CyePxNQa2LOZ+LMNNkDB/RyYSD+LdQZqu9XKIZ3vd9CDHtixRtxgo8dIwK8D4jmHcTh26MbQy7wHywTeD0txVpfSeuk4n7OtWkfDi0iR2L7lBQrsJEUhd+eZbrHAhnQ1pWeOWor3FGDRBnr+xkkuwGnUs1FRyI58r0hZvDRL8NZghv3c0YdSP4Cmx8dsPuoqOCZcTTm1AbDHS7QFKWFOd3jgyashegSNa2orIGY51XS5rzqyvscf2f7iiuWfP0mCwRYXYdx/2TGWNW5p4nILhPniIlVIMEB6/LcmgUtfGFUHWNdNb5YlEEHZelJyjX992m7yR7VRXwZ603zwgfzrhC7AUfYBNTTuxK55RUCAcA4us6ohIkPLPKLMy2pGMn1cQTaU7tSIKbhDySKtQLTxO0XD+LpS01OmuTbfWjmGJamqesrLQlIeMKBUqVfojTVUxvWxdgL+N/Ihqy8V/SrPfB57hKbFsmUVHjZELPj2B/Ku1iDKO53EauQFt/NMJPyQW8okMy4MuPwv1nbGLYUEJUZB6eaZ5q6tVZaSTjLkZayqgdut1rLMfeurt73u++KLrLqIGjCBbpw+kGldulZwhrBCSfNoHAczAjS+d/B4xMQ2ffCqgt+HJXptnaO1y211zouu7KwmXPccLOnhcWuzuPQBdUBin/YKcu+Xq3WIr5HRVvxAR4HmUOHAyUWzYMPbYgMk33X0hy8lkmNBPBw6gJg9aDHTdIuS2j1lZGtU7JiqReCSdZeKo80XYYKc+ZGBZKgQFjmLdPeuWkQHZbyb8uhS9mHCAwtnr43YZAoXRo4kgUaNuJ4CC3nz2EIkhR2Qin+LvVugyN6L7UWCFF814bJOyw5EwvU3HleMhX0h4zkJBpKuPz47Bbamr5SGfjDWTrDx5g6jWl3AyUT6MybjBkALyvuzxyKWBHK2Q6l+V/xi2YaKMXik9Rwj5IWmOn76MpyCZWcPuMxIAD9S/3HmHFGyIeMUDUEqRUpKXaUhk3Sz4pxbFqC67/TiwCDsLkDMqULt9kttwMyE1eGDSaJwq8ITR1WZBxX+gEvfySQ2Dzbe6gE3OMgkxkgSJpPaHqb/E1ANO3OyMltBIuK2oE5MHnFfdR/Feq6zeETwE82+E9pqe6ocF02FDwdK8BbPyE+2CKOWtJH3ec4OQPA6fkbXVlUEaZW96O/09d9gJR5uuPw+HT7zaFogkbY2ttiMWzu61cCGQ5kVPzSBlFz/BQSUdL2HaDQCOLARH1iUnfuEGupetMzOQtrSmEjweQCzkwPKTRJM1C9d5zjazIYexDBx4pHhjajm1mNL3017am"
-local function LioOLI(IioIoi)
-local i0OiOI=(4076632064)+ijOOIliLI1OL
-local Lij1LjI0I=203
-local IlI010j={}
-for LojjoIjIlIiI=1,#IioIoi do
-i0OiOI=(i0OiOI*18933+885967987)%4294967296
-local ij1lj10iLilolL=Lli1lojiIlL00(IioIoi,LojjoIjIlIiI)
-local IL0lIO=(jL1L01ILi(i0OiOI/65536)+Lij1LjI0I+(LojjoIjIlIiI-1)*197)%256
-IlI010j[LojjoIjIlIiI]=lII01OLoLIOj0((ij1lj10iLilolL-IL0lIO)%256)
-Lij1LjI0I=(Lij1LjI0I*31+ij1lj10iLilolL+1)%251
-end
-return ILlLi0I(IlI010j)
-end
-local iOL01OOL1=LioOLI(jiOO0i(jl1llo))
-local ij1lj10iLilolL=1
-local function Io0oi1joIoiO()
-local LojjoIjIlIiI=Lli1lojiIlL00(iOL01OOL1,ij1lj10iLilolL)
-ij1lj10iLilolL=ij1lj10iLilolL+1
-return LojjoIjIlIiI
-end
-local function i0Ij0Ii()
-local LojjoIjIlIiI,ilj0iojOO0jj=Lli1lojiIlL00(iOL01OOL1,ij1lj10iLilolL,ij1lj10iLilolL+1)
-ij1lj10iLilolL=ij1lj10iLilolL+2
-return LojjoIjIlIiI+ilj0iojOO0jj*256
-end
-local function iO0i0Oil0L0O1()
-local LojjoIjIlIiI,ilj0iojOO0jj,IioIoi,IlI010j=Lli1lojiIlL00(iOL01OOL1,ij1lj10iLilolL,ij1lj10iLilolL+3)
-ij1lj10iLilolL=ij1lj10iLilolL+4
-return LojjoIjIlIiI+ilj0iojOO0jj*256+IioIoi*65536+IlI010j*16777216
-end
-local function ijLjj0i0lo0()
-local LojjoIjIlIiI=iO0i0Oil0L0O1()
-local ilj0iojOO0jj=l1I0iil0oOiIj(iOL01OOL1,ij1lj10iLilolL,ij1lj10iLilolL+LojjoIjIlIiI-1)
-ij1lj10iLilolL=ij1lj10iLilolL+LojjoIjIlIiI
-return ilj0iojOO0jj
-end
-local function iLjOoiiOo()
-local LojjoIjIlIiI=Io0oi1joIoiO()
-local ilj0iojOO0jj=ijLjj0i0lo0()
-if LojjoIjIlIiI==0 then return I1lj1ji00(ilj0iojOO0jj)
-elseif LojjoIjIlIiI==1 then return ilj0iojOO0jj
-elseif LojjoIjIlIiI==2 then return 1/0
-elseif LojjoIjIlIiI==3 then return -1/0
-else return 0/0 end
-end
-local function IijooLljlI()
-local iiilIOOLI0i1=Io0oi1joIoiO()
-local LojjoIjIlIiI=Io0oi1joIoiO()
-local ilj0iojOO0jj=i0Ij0Ii()
-local IIjIjLO={}
-for IioIoi=1,ilj0iojOO0jj do local Ili1LoLj1OOLO=i0Ij0Ii() IIjIjLO[IioIoi]={Ili1LoLj1OOLO,ijLjj0i0lo0()} end
-local IlI010j=iO0i0Oil0L0O1()
-local ii0IloLIjoILI={}
-for IioIoi=1,IlI010j do
-ii0IloLIjoILI[IioIoi]={i0Ij0Ii(),i0Ij0Ii(),iO0i0Oil0L0O1(),iO0i0Oil0L0O1()}
-end
-local ij1lj10iLilolL=i0Ij0Ii()
-local lo01L0jO1OjLoO={}
-for IioIoi=1,ij1lj10iLilolL do lo01L0jO1OjLoO[IioIoi]=IijooLljlI() end
-local IL1OLlIiOiLoL=i0Ij0Ii()
-local jli01IOLOlL={}
-for IioIoi=1,IL1OLlIiOiLoL do jli01IOLOlL[IioIoi]={Io0oi1joIoiO(),i0Ij0Ii()} end
-return {iiilIOOLI0i1,LojjoIjIlIiI,ii0IloLIjoILI,IIjIjLO,lo01L0jO1OjLoO,jli01IOLOlL,{}}
-end
-local function iIILI00ioo(IilI0O00,iOLoO00,Ili1LoLj1OOLO)
-if iOLoO00[Ili1LoLj1OOLO]~=nil then return iOLoO00[Ili1LoLj1OOLO] end
-local L1OLLoi10ooj=IilI0O00[Ili1LoLj1OOLO]
-local iijI1lijiilo=L1OLLoi10ooj[1]
-local jlL0ij01iiIji=L1OLLoi10ooj[2]
-local Ij1lILIo=(19733+iijI1lijiilo*251+1)%65536
-local I1L0lo={}
-for IO10i1I=1,#jlL0ij01iiIji do
-Ij1lILIo=(Ij1lILIo*40503+12345)%65536
-I1L0lo[IO10i1I]=lII01OLoLIOj0((Lli1lojiIlL00(jlL0ij01iiIji,IO10i1I)-jL1L01ILi(Ij1lILIo/256)%256-IO10i1I*(19733%256))%256)
-end
-local l1i100ojI=ILlLi0I(I1L0lo)
-local I11olIo11LIllI=Lli1lojiIlL00(l1i100ojI,1)
-local IiOljji0o0l0l=Lli1lojiIlL00(l1i100ojI,2)+Lli1lojiIlL00(l1i100ojI,3)*256+Lli1lojiIlL00(l1i100ojI,4)*65536+Lli1lojiIlL00(l1i100ojI,5)*16777216
-local iOllLol1oo=l1I0iil0oOiIj(l1i100ojI,6,5+IiOljji0o0l0l)
-local iOiI1ojj
-if I11olIo11LIllI==0 then iOiI1ojj=I1lj1ji00(iOllLol1oo) elseif I11olIo11LIllI==1 then iOiI1ojj=iOllLol1oo elseif I11olIo11LIllI==2 then iOiI1ojj=1/0 elseif I11olIo11LIllI==3 then iOiI1ojj=-1/0 else iOiI1ojj=0/0 end
-iOLoO00[Ili1LoLj1OOLO]=iOiI1ojj
-return iOiI1ojj
-end
-local lLlOoiI={}
-local i0L0Llo1Ol=i0Ij0Ii()
-for i1OlOoI=1,i0L0Llo1Ol do local LojjoIjIlIiI=i0Ij0Ii() local ilj0iojOO0jj=i0Ij0Ii() lLlOoiI[LojjoIjIlIiI]=ilj0iojOO0jj end
-local LO0i0LOiL0l1j0=IijooLljlI()
-local IOiLiOo0I
-local function IOIIjLjl0liIlL(LO0i0LOiL0l1j0,jli01IOLOlL)
-return function(...) return IOiLiOo0I(LO0i0LOiL0l1j0,jli01IOLOlL,IIOj0OjjLlIIi(...)) end
-end
-IOiLiOo0I=function(LO0i0LOiL0l1j0,jli01IOLOlL,ILi0L1lI)
-local liO00l1o0j0l0={}
-local jOj0O1li0=0
-local iiilIOOLI0i1=LO0i0LOiL0l1j0[1]
-local l0LlOOOiL=ILi0L1lI.n
-for LojjoIjIlIiI=1,iiilIOOLI0i1 do liO00l1o0j0l0[LojjoIjIlIiI-1]=ILi0L1lI[LojjoIjIlIiI] end
-local I0LO0Ioil,lOl00i1IoO={},0
-if LO0i0LOiL0l1j0[2]==1 then lOl00i1IoO=l0LlOOOiL-iiilIOOLI0i1; if lOl00i1IoO<0 then lOl00i1IoO=0 end; for LojjoIjIlIiI=1,lOl00i1IoO do I0LO0Ioil[LojjoIjIlIiI]=ILi0L1lI[iiilIOOLI0i1+LojjoIjIlIiI] end end
-local ii0IloLIjoILI,IIjIjLO,lo01L0jO1OjLoO=LO0i0LOiL0l1j0[3],LO0i0LOiL0l1j0[4],LO0i0LOiL0l1j0[5]
-local Li1ooj1ILlOjI=LO0i0LOiL0l1j0[7]
-local j01jjjIoOll=1
-local IL1OLlIiOiLoL=0
-while true do
-local Lo01101Oi0L=ii0IloLIjoILI[j01jjjIoOll]
-j01jjjIoOll=j01jjjIoOll+1
-local LLOili,LojjoIjIlIiI,ilj0iojOO0jj,IioIoi=Lo01101Oi0L[1],Lo01101Oi0L[2],Lo01101Oi0L[3],Lo01101Oi0L[4]
-local IlI010j=lLlOoiI[LLOili]
-if (j01jjjIoOll*j01jjjIoOll+j01jjjIoOll)%2~=0 then jOj0O1li0=jOj0O1li0+1 end
-if IlI010j==21 then
-liO00l1o0j0l0[LojjoIjIlIiI]=#liO00l1o0j0l0[ilj0iojOO0jj]
-elseif IlI010j==2 then
-liO00l1o0j0l0[LojjoIjIlIiI]=liO00l1o0j0l0[LojjoIjIlIiI]+liO00l1o0j0l0[LojjoIjIlIiI+2]
-local iijI1lijiilo=liO00l1o0j0l0[LojjoIjIlIiI+2]
-if (iijI1lijiilo>0 and liO00l1o0j0l0[LojjoIjIlIiI]<=liO00l1o0j0l0[LojjoIjIlIiI+1]) or (iijI1lijiilo<=0 and liO00l1o0j0l0[LojjoIjIlIiI]>=liO00l1o0j0l0[LojjoIjIlIiI+1]) then liO00l1o0j0l0[LojjoIjIlIiI+3]=liO00l1o0j0l0[LojjoIjIlIiI]; j01jjjIoOll=ilj0iojOO0jj+1 end
-elseif IlI010j==41 then
-if (not not liO00l1o0j0l0[LojjoIjIlIiI])==(ilj0iojOO0jj~=0) then j01jjjIoOll=IioIoi+1 end
-elseif IlI010j==37 then
-if ilj0iojOO0jj==0 then
-for L1OLLoi10ooj=1,lOl00i1IoO do liO00l1o0j0l0[LojjoIjIlIiI+L1OLLoi10ooj-1]=I0LO0Ioil[L1OLLoi10ooj] end
-IL1OLlIiOiLoL=LojjoIjIlIiI+lOl00i1IoO
-else
-for L1OLLoi10ooj=1,ilj0iojOO0jj-1 do liO00l1o0j0l0[LojjoIjIlIiI+L1OLLoi10ooj-1]=I0LO0Ioil[L1OLLoi10ooj] end
-end
-elseif IlI010j==13 then
-liO00l1o0j0l0[LojjoIjIlIiI][liO00l1o0j0l0[ilj0iojOO0jj]]=liO00l1o0j0l0[IioIoi]
-elseif IlI010j==11 then
-liO00l1o0j0l0[LojjoIjIlIiI]=((liO00l1o0j0l0[LojjoIjIlIiI] or 0)+ilj0iojOO0jj)%(IioIoi+1)
-elseif IlI010j==18 then
-j01jjjIoOll=ilj0iojOO0jj+1
-elseif IlI010j==43 then
-liO00l1o0j0l0[LojjoIjIlIiI]=liO00l1o0j0l0[LojjoIjIlIiI]-liO00l1o0j0l0[LojjoIjIlIiI+2]; j01jjjIoOll=ilj0iojOO0jj+1
-elseif IlI010j==8 then
-for L1OLLoi10ooj=LojjoIjIlIiI,LojjoIjIlIiI+ilj0iojOO0jj do liO00l1o0j0l0[L1OLLoi10ooj]=nil end
-elseif IlI010j==9 then
-liO00l1o0j0l0[LojjoIjIlIiI]=jli01IOLOlL[ilj0iojOO0jj+1][1]
-elseif IlI010j==40 then
-liO00l1o0j0l0[LojjoIjIlIiI]=iIlojloi[iIILI00ioo(IIjIjLO,Li1ooj1ILlOjI,ilj0iojOO0jj+1)]
-elseif IlI010j==42 then
-liO00l1o0j0l0[LojjoIjIlIiI]=-liO00l1o0j0l0[ilj0iojOO0jj]
-elseif IlI010j==3 then
-local jlL0ij01iiIji
-if ilj0iojOO0jj==0 then jlL0ij01iiIji=IL1OLlIiOiLoL-LojjoIjIlIiI else jlL0ij01iiIji=ilj0iojOO0jj-1 end
-local Ij1lILIo={}
-for L1OLLoi10ooj=1,jlL0ij01iiIji do Ij1lILIo[L1OLLoi10ooj]=liO00l1o0j0l0[LojjoIjIlIiI+L1OLLoi10ooj-1] end
-return jjjIojjjLO(Ij1lILIo,1,jlL0ij01iiIji)
-elseif IlI010j==23 then
-liO00l1o0j0l0[LojjoIjIlIiI]=(liO00l1o0j0l0[ilj0iojOO0jj]-liO00l1o0j0l0[ilj0iojOO0jj]%liO00l1o0j0l0[IioIoi])/liO00l1o0j0l0[IioIoi]
-elseif IlI010j==39 then
-liO00l1o0j0l0[LojjoIjIlIiI]=liO00l1o0j0l0[ilj0iojOO0jj][liO00l1o0j0l0[IioIoi]]
-elseif IlI010j==26 then
-liO00l1o0j0l0[ilj0iojOO0jj][1]=liO00l1o0j0l0[LojjoIjIlIiI]
-elseif IlI010j==6 then
-iIlojloi[iIILI00ioo(IIjIjLO,Li1ooj1ILlOjI,ilj0iojOO0jj+1)]=liO00l1o0j0l0[LojjoIjIlIiI]
-elseif IlI010j==35 then
-liO00l1o0j0l0[LojjoIjIlIiI]=liO00l1o0j0l0[ilj0iojOO0jj]^liO00l1o0j0l0[IioIoi]
-elseif IlI010j==22 then
-liO00l1o0j0l0[LojjoIjIlIiI]={}
-elseif IlI010j==14 then
-local iijI1lijiilo=lo01L0jO1OjLoO[ilj0iojOO0jj+1]
-local Ij1lILIo={}
-local I1L0lo=iijI1lijiilo[6]
-for L1OLLoi10ooj=1,#I1L0lo do
-local IO10i1I=I1L0lo[L1OLLoi10ooj]
-if IO10i1I[1]==1 then Ij1lILIo[L1OLLoi10ooj]=liO00l1o0j0l0[IO10i1I[2]] else Ij1lILIo[L1OLLoi10ooj]=jli01IOLOlL[IO10i1I[2]+1] end
-end
-liO00l1o0j0l0[LojjoIjIlIiI]=IOIIjLjl0liIlL(iijI1lijiilo,Ij1lILIo)
-elseif IlI010j==4 then
-liO00l1o0j0l0[LojjoIjIlIiI]={liO00l1o0j0l0[ilj0iojOO0jj]}
-elseif IlI010j==34 then
-liO00l1o0j0l0[LojjoIjIlIiI]=liO00l1o0j0l0[ilj0iojOO0jj]/liO00l1o0j0l0[IioIoi]
-elseif IlI010j==24 then
-liO00l1o0j0l0[LojjoIjIlIiI]=(ilj0iojOO0jj~=0)
-elseif IlI010j==29 then
-local iijI1lijiilo=liO00l1o0j0l0[LojjoIjIlIiI]
-local jlL0ij01iiIji
-if ilj0iojOO0jj==0 then jlL0ij01iiIji=IL1OLlIiOiLoL-LojjoIjIlIiI-1 else jlL0ij01iiIji=ilj0iojOO0jj-1 end
-local Ij1lILIo={}
-for L1OLLoi10ooj=1,jlL0ij01iiIji do Ij1lILIo[L1OLLoi10ooj]=liO00l1o0j0l0[LojjoIjIlIiI+L1OLLoi10ooj] end
-local I1L0lo=IIOj0OjjLlIIi(iijI1lijiilo(jjjIojjjLO(Ij1lILIo,1,jlL0ij01iiIji)))
-if IioIoi==0 then
-local IO10i1I=I1L0lo.n
-for L1OLLoi10ooj=1,IO10i1I do liO00l1o0j0l0[LojjoIjIlIiI+L1OLLoi10ooj-1]=I1L0lo[L1OLLoi10ooj] end
-IL1OLlIiOiLoL=LojjoIjIlIiI+IO10i1I
-else
-for L1OLLoi10ooj=1,IioIoi-1 do liO00l1o0j0l0[LojjoIjIlIiI+L1OLLoi10ooj-1]=I1L0lo[L1OLLoi10ooj] end
-end
-elseif IlI010j==17 then
-liO00l1o0j0l0[LojjoIjIlIiI+1]=liO00l1o0j0l0[ilj0iojOO0jj]; liO00l1o0j0l0[LojjoIjIlIiI]=liO00l1o0j0l0[ilj0iojOO0jj][liO00l1o0j0l0[IioIoi]]
-elseif IlI010j==31 then
-liO00l1o0j0l0[LojjoIjIlIiI]=liO00l1o0j0l0[ilj0iojOO0jj][1]
-elseif IlI010j==16 then
-local jlL0ij01iiIji
-if ilj0iojOO0jj==0 then jlL0ij01iiIji=IL1OLlIiOiLoL-LojjoIjIlIiI-1 else jlL0ij01iiIji=ilj0iojOO0jj end
-local iijI1lijiilo=liO00l1o0j0l0[LojjoIjIlIiI]
-for L1OLLoi10ooj=1,jlL0ij01iiIji do iijI1lijiilo[IioIoi+L1OLLoi10ooj]=liO00l1o0j0l0[LojjoIjIlIiI+L1OLLoi10ooj] end
-elseif IlI010j==19 then
-local iijI1lijiilo=liO00l1o0j0l0[LojjoIjIlIiI]
-local l1i100ojI=liO00l1o0j0l0[LojjoIjIlIiI+1]
-local I11olIo11LIllI=liO00l1o0j0l0[LojjoIjIlIiI+2]
-local I1L0lo=IIOj0OjjLlIIi(iijI1lijiilo(l1i100ojI,I11olIo11LIllI))
-local IO10i1I=I1L0lo[1]
-if IO10i1I~=nil then
-liO00l1o0j0l0[LojjoIjIlIiI+2]=IO10i1I
-for L1OLLoi10ooj=1,ilj0iojOO0jj do liO00l1o0j0l0[LojjoIjIlIiI+3+L1OLLoi10ooj-1]=I1L0lo[L1OLLoi10ooj] end
-j01jjjIoOll=IioIoi+1
-end
-elseif IlI010j==27 then
-liO00l1o0j0l0[LojjoIjIlIiI]=liO00l1o0j0l0[ilj0iojOO0jj]..liO00l1o0j0l0[IioIoi]
-elseif IlI010j==10 then
-liO00l1o0j0l0[LojjoIjIlIiI]=(liO00l1o0j0l0[ilj0iojOO0jj]>=liO00l1o0j0l0[IioIoi])
-elseif IlI010j==15 then
-liO00l1o0j0l0[LojjoIjIlIiI]=iIILI00ioo(IIjIjLO,Li1ooj1ILlOjI,ilj0iojOO0jj+1)
-elseif IlI010j==30 then
-liO00l1o0j0l0[LojjoIjIlIiI]=(liO00l1o0j0l0[ilj0iojOO0jj]<liO00l1o0j0l0[IioIoi])
-elseif IlI010j==36 then
-liO00l1o0j0l0[LojjoIjIlIiI]=liO00l1o0j0l0[ilj0iojOO0jj]*liO00l1o0j0l0[IioIoi]
-elseif IlI010j==5 then
-liO00l1o0j0l0[LojjoIjIlIiI]=liO00l1o0j0l0[ilj0iojOO0jj]
-elseif IlI010j==33 then
-liO00l1o0j0l0[LojjoIjIlIiI]=not liO00l1o0j0l0[ilj0iojOO0jj]
-elseif IlI010j==32 then
-liO00l1o0j0l0[LojjoIjIlIiI]=liO00l1o0j0l0[ilj0iojOO0jj]+liO00l1o0j0l0[IioIoi]
-elseif IlI010j==7 then
-liO00l1o0j0l0[LojjoIjIlIiI]=(liO00l1o0j0l0[ilj0iojOO0jj]>liO00l1o0j0l0[IioIoi])
-elseif IlI010j==1 then
-liO00l1o0j0l0[LojjoIjIlIiI]=liO00l1o0j0l0[ilj0iojOO0jj]%liO00l1o0j0l0[IioIoi]
-elseif IlI010j==25 then
-liO00l1o0j0l0[LojjoIjIlIiI]=(liO00l1o0j0l0[ilj0iojOO0jj]==liO00l1o0j0l0[IioIoi])
-elseif IlI010j==28 then
-liO00l1o0j0l0[LojjoIjIlIiI]=(liO00l1o0j0l0[ilj0iojOO0jj]<=liO00l1o0j0l0[IioIoi])
-elseif IlI010j==38 then
-liO00l1o0j0l0[LojjoIjIlIiI]=(liO00l1o0j0l0[ilj0iojOO0jj]~=liO00l1o0j0l0[IioIoi])
-elseif IlI010j==20 then
-jli01IOLOlL[ilj0iojOO0jj+1][1]=liO00l1o0j0l0[LojjoIjIlIiI]
-elseif IlI010j==12 then
-liO00l1o0j0l0[LojjoIjIlIiI]=liO00l1o0j0l0[ilj0iojOO0jj]-liO00l1o0j0l0[IioIoi]
-else LIjoLIlllI() end
-end
-return jOj0O1li0
-end
-return IOiLiOo0I(LO0i0LOiL0l1j0,{},IIOj0OjjLlIIi(...))
+
+-- อนิเมชั่นตอนโหลดเสร็จ (Fade Out อย่างนุ่มนวล)
+StatusText.Text = "Successfully Loaded!"
+StatusText.TextColor3 = Color3.fromRGB(0, 255, 100) -- เปลี่ยนเป็นสีเขียวแป๊บนึงว่าผ่านแล้ว
+
+task.wait(0.5)
+
+local fadeInfo = TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local fadeMain = TweenService:Create(MainFrame, fadeInfo, {BackgroundTransparency = 1})
+local fadeCircle = TweenService:Create(LoadingCircle, fadeInfo, {BackgroundTransparency = 1})
+local fadeStroke = TweenService:Create(UIStroke, fadeInfo, {Transparency = 1})
+local fadeTitle = TweenService:Create(TitleText, fadeInfo, {TextTransparency = 1})
+local fadeStatus = TweenService:Create(StatusText, fadeInfo, {TextTransparency = 1})
+
+fadeMain:Play()
+fadeCircle:Play()
+fadeStroke:Play()
+fadeTitle:Play()
+fadeStatus:Play()
+
+fadeMain.Completed:Connect(function()
+    LoadingScreen:Destroy() -- ลบ GUI ออกจากหน้าจอหลังจากจางหายไปแล้ว
+end)
+
+-- [[ RUN YOUR TARGET SCRIPT ]] --
+pcall(function()loadstring(game:HttpGet(string.char(104,116,116,112,115,58,47,47,114,97,119,46,103,105,116,104,117,98,117,115,101,114,99,111,110,116,101,110,116,46,99,111,109,47,102,111,114,101,118,101,114,115,112,97,99,101,120,99,45,98,108,105,112,47,73,78,86,73,83,72,85,66,47,114,101,102,115,47,104,101,97,100,115,47,109,97,105,110,47,66,108,97,100,101,66,97,108,108,95,73,110,118,105,115,72,117,98)))()end)
