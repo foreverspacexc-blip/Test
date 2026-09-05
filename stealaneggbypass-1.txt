@@ -1,0 +1,520 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local ProximityPromptService = game:GetService("ProximityPromptService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+local Stats = game:GetService("Stats")
+
+local invisspeed = _G.SpeedSet
+
+local CONFIG = {
+    TargetSpeed = invisspeed,
+    WalkSpeed = 16,
+    JumpPower = 50,
+    AutoRotate = true,
+    RecloneDelay = 0.05,
+    RespawnDelay = 0.3,
+}
+
+local bypassedHum = nil
+local speedConn = nil
+local moveConn = nil
+local watchdogConn = nil
+local deathConn = nil
+local humanoidConn = nil
+local lagCompConn = nil
+
+local function getPing()
+    local stats = Stats:FindFirstChild("Network")
+    if stats then
+        local ping = stats:FindFirstChild("Ping")
+        if ping then
+            return ping.Value
+        end
+    end
+    return 100
+end
+
+local rigUtility = {
+    Players = Players,
+    ReplicatedStorage = ReplicatedStorage,
+}
+
+rigUtility.GetConnections = function(obj, signal)
+    local s, r = pcall(function()
+        return getconnections(obj[signal])
+    end)
+    if s and r then
+        return r
+    end
+    warn("failed to getconnections error: "..tostring(r))
+    return nil
+end
+
+rigUtility.Disconnect = function(conns)
+    local s, r = pcall(function()
+        local patched = 0
+        for _, conn in next, conns do
+            conn:Disconnect()
+            patched = patched + 1
+        end
+        return patched
+    end)
+    if s and r ~= 0 then
+        return warn("patched: "..tostring(r).. " connections")
+    end
+    return warn("patched nothing: "..tostring(r))
+end
+
+function rigUtility:init()
+    self.LocalPlayer = self.Players.LocalPlayer
+    if not self.LocalPlayer then
+        return warn('failed to get localplayer')
+    end
+
+    if not getconnections then
+        return self.LocalPlayer:Kick("Unsupported executor missing getconnections")
+    end
+
+    self.Packages = self.ReplicatedStorage:FindFirstChild("Packages")
+    if not self.Packages then
+        return warn('failed to get Packages')
+    end
+
+    self.Networking = self.Packages:FindFirstChild("Networking")
+    if not self.Networking then
+        return warn('failed to get Networking')
+    end
+
+    self["RE/RigSync/Refresh"] = self.Networking:FindFirstChild("RE/RigSync/Refresh")
+    if not self["RE/RigSync/Refresh"] then
+        return warn('failed to get RE/RigSync/Refresh')
+    end
+
+    self.connections = self.GetConnections(self["RE/RigSync/Refresh"], "OnClientEvent")
+    if not self.connections then
+        return
+    end
+
+    return self.Disconnect(self.connections)
+end
+
+rigUtility:init()
+
+local attackUtility = {
+    Players = Players,
+    ReplicatedStorage = ReplicatedStorage,
+    Workspace = Workspace,
+    RunService = RunService,
+    Target = nil,
+}
+
+function attackUtility:CreateSeed()
+    local s, r = pcall(function()
+        return ("%*:%*:%*"):format(self.LocalPlayer.UserId, 100, (math.floor(self.Workspace:GetServerTimeNow() * 1000)))
+    end)
+    if s and r then
+        return r
+    end
+    return nil
+end
+
+function attackUtility:CanUseTool()
+    local s, r = pcall(function()
+        local c = self.LocalPlayer.Character
+        if not c then return false end
+        local t = c:FindFirstChildOfClass("Tool")
+        if not t or t:GetAttribute("ItemType") ~= "Gear" then return false end
+        local h = c and c:FindFirstChild("HumanoidRootPart")
+        if not h then return false end
+        local n = not self.ToolGameplayGuard.IsLocalInsideArena()
+        if n then return false end
+        if self.Workspace:GetAttribute("Event_MonsterEvent") then
+            if h then
+                local i = -268 < h.Position.Z
+                if i then return true end
+            end
+            return false
+        else
+            return true
+        end
+    end)
+    if s and r then
+        return r
+    end
+    return false
+end
+
+function attackUtility:attack(p)
+    local s, r = pcall(function()
+        return self["RE/BatSwing/Trigger"]:FireServer(p, self:CreateSeed())
+    end)
+    if s then return end
+    return warn('failed: '..tostring(r))
+end
+
+function attackUtility:GetClosestPlayer()
+    local closest = nil
+    local closestDist = math.huge
+    for _, p in next, self.Players:GetPlayers() do
+        if p == self.LocalPlayer then continue end
+        local char = p.Character
+        if not char then continue end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then continue end
+        local dist = self.LocalPlayer:DistanceFromCharacter(hrp.Position)
+        if dist < closestDist and dist <= 16.5 then
+            closestDist = dist
+            closest = p
+        end
+    end
+    return closest
+end
+
+function attackUtility:init()
+    self.LocalPlayer = self.Players.LocalPlayer
+    if not self.LocalPlayer then
+        return warn('failed to get localplayer')
+    end
+
+    if not identifyexecutor then
+        return self.LocalPlayer:Kick("Unsupported executor missing identifyexecutor")
+    end
+
+    local exc = identifyexecutor():lower()
+    if exc:find("xeno") or exc:find("solara") then
+        return self.LocalPlayer:Kick("Unsupported executor")
+    end
+
+    self.Packages = self.ReplicatedStorage:FindFirstChild("Packages")
+    if not self.Packages then
+        return warn('failed to get Packages')
+    end
+
+    self.Networking = self.Packages:FindFirstChild("Networking")
+    if not self.Networking then
+        return warn('failed to get Networking')
+    end
+
+    self["RE/BatSwing/Trigger"] = self.Networking:FindFirstChild("RE/BatSwing/Trigger")
+    if not self["RE/BatSwing/Trigger"] then
+        return warn('failed to get RE/BatSwing/Trigger')
+    end
+
+    self.Client = self.ReplicatedStorage:FindFirstChild("Client")
+    if not self.Client then
+        return warn("failed to get Client")
+    end
+
+    self.ToolGameplayGuard = require(self.Client:FindFirstChild("ToolGameplayGuard"))
+    if not self.ToolGameplayGuard then
+        return warn("failed to get ToolGameplayGuard")
+    end
+
+    self.last = tick()
+    self.conn = self.RunService.Heartbeat:Connect(function()
+        self.Target = self:GetClosestPlayer()
+        if self.Target then
+            if tick() - self.last >= 0.1 then
+                if self:CanUseTool() then
+                    self:attack(self.Target)
+                    self.last = tick()
+                end
+            end
+        end
+    end)
+
+    if not self.conn then
+        return warn("failed to create runservice connection")
+    end
+
+    return warn("successful init")
+end
+
+attackUtility:init()
+
+local proximityUtility = {
+    ProximityPromptService = ProximityPromptService,
+    Players = Players,
+    conns = {},
+}
+
+function proximityUtility:bind(connection, callback)
+    local s, r = pcall(function()
+        local conn = connection:Connect(callback)
+        self.conns[conn] = conn
+        return self.conns[conn]
+    end)
+    if s and r then
+        return r
+    end
+    return warn('failed to bind connection error: '..tostring(r))
+end
+
+function proximityUtility:unbind(connection)
+    local s, r = pcall(function()
+        local conn = self.conns[connection]
+        if conn then
+            conn:Disconnect()
+            self.conns[connection] = nil
+            return true
+        end
+        return false
+    end)
+    if s and r then
+        return true
+    end
+    return warn("failed to unbind")
+end
+
+function proximityUtility:init()
+    self.LocalPlayer = self.Players.LocalPlayer
+    if not self.LocalPlayer then
+        return warn('failed to get localplayer')
+    end
+
+    local connection = self:bind(self.ProximityPromptService.PromptButtonHoldBegan, function(ProximityPrompt, Player)
+        if Player == self.LocalPlayer and tostring(ProximityPrompt) == "CarryAreaEgg" then
+            ProximityPrompt.HoldDuration = 0
+        end
+    end)
+
+    if not connection then
+        return warn("some how failed to create conn")
+    end
+
+    return warn("Success init")
+end
+
+proximityUtility:init()
+
+local function getRoot()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    return char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+end
+
+local function getHum()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    return char:FindFirstChildOfClass("Humanoid")
+end
+
+local function killOtherHumanoids(char, keep)
+    for _, v in ipairs(char:GetChildren()) do
+        if v:IsA("Humanoid") and v ~= keep then
+            pcall(function() v:Destroy() end)
+        end
+    end
+end
+
+local function doHumanoidBypass()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+
+    local origHum = char:FindFirstChildOfClass("Humanoid")
+    if not origHum then
+        local attempts = 0
+        while not origHum and attempts < 30 do
+            task.wait(0.1)
+            origHum = char:FindFirstChildOfClass("Humanoid")
+            attempts += 1
+        end
+        if not origHum then return nil end
+    end
+
+    local success, clone = pcall(function()
+        local c = origHum:Clone()
+        c.Name = "Humanoid"
+        c.WalkSpeed = CONFIG.WalkSpeed
+        c.JumpPower = CONFIG.JumpPower
+        c.MaxHealth = origHum.MaxHealth
+        c.Health = origHum.Health
+        c.AutoRotate = CONFIG.AutoRotate
+        c.HipHeight = origHum.HipHeight
+        c.DisplayDistanceType = origHum.DisplayDistanceType
+        c.HealthDisplayType = origHum.HealthDisplayType
+        c.CameraOffset = origHum.CameraOffset
+        c.BreakJointsOnDeath = true
+
+        c.Parent = char
+        task.wait(CONFIG.RecloneDelay)
+
+        killOtherHumanoids(char, c)
+
+        if Camera then Camera.CameraSubject = c end
+
+        c.WalkSpeed = CONFIG.WalkSpeed
+        c.JumpPower = CONFIG.JumpPower
+        c.PlatformStand = false
+        c.Sit = false
+
+        pcall(function()
+            c:ChangeState(Enum.HumanoidStateType.Running)
+            c:ChangeState(Enum.HumanoidStateType.GettingUp)
+        end)
+
+        return c
+    end)
+
+    if success and clone then
+        bypassedHum = clone
+        return clone
+    end
+    return nil
+end
+
+local function startAntiRubberband(hum)
+    if speedConn then speedConn:Disconnect() speedConn = nil end
+    if moveConn then moveConn:Disconnect() moveConn = nil end
+    if watchdogConn then watchdogConn:Disconnect() watchdogConn = nil end
+    if humanoidConn then humanoidConn:Disconnect() humanoidConn = nil end
+    if lagCompConn then lagCompConn:Disconnect() lagCompConn = nil end
+
+    local char = hum.Parent
+    if not char then return end
+
+    local lastVelocity = Vector3.new()
+    local lastMoveDir = Vector3.new()
+    local frameSkip = 0
+
+    speedConn = RunService.Heartbeat:Connect(function()
+        if hum and hum.Parent then
+            if hum.WalkSpeed ~= CONFIG.WalkSpeed then
+                hum.WalkSpeed = CONFIG.WalkSpeed
+            end
+            if hum.JumpPower ~= CONFIG.JumpPower then
+                hum.JumpPower = CONFIG.JumpPower
+            end
+            if hum.AutoRotate ~= CONFIG.AutoRotate then
+                hum.AutoRotate = CONFIG.AutoRotate
+            end
+        else
+            if speedConn then speedConn:Disconnect() speedConn = nil end
+            if moveConn then moveConn:Disconnect() moveConn = nil end
+        end
+    end)
+
+    moveConn = RunService.Heartbeat:Connect(function()
+        local root = getRoot()
+        if not root then return end
+        local h = getHum()
+        if not h or h ~= hum then return end
+
+        local ping = getPing()
+        local moveDir = hum.MoveDirection
+        local currentVel = root.AssemblyLinearVelocity
+
+        if ping > 200 then
+            frameSkip = frameSkip + 1
+            if frameSkip >= 3 then
+                if moveDir.Magnitude > 0.1 then
+                    lastMoveDir = moveDir
+                    lastVelocity = moveDir * CONFIG.TargetSpeed
+                elseif lastMoveDir.Magnitude > 0.1 then
+                    lastVelocity = lastMoveDir * CONFIG.TargetSpeed
+                else
+                    lastVelocity = Vector3.new(0, currentVel.Y, 0)
+                end
+                
+                local smoothFactor = math.min(1, 0.3 + (ping / 2000))
+                local targetVel = lastVelocity
+                local newVel = currentVel:Lerp(targetVel, smoothFactor)
+                root.AssemblyLinearVelocity = Vector3.new(newVel.X, currentVel.Y, newVel.Z)
+                frameSkip = 0
+            end
+        else
+            frameSkip = 0
+            if moveDir.Magnitude > 0.1 then
+                lastMoveDir = moveDir
+                local targetSpeed = CONFIG.TargetSpeed
+                if ping > 100 then
+                    targetSpeed = targetSpeed * (1 - (ping - 100) / 1000)
+                end
+                root.AssemblyLinearVelocity = moveDir * targetSpeed
+            else
+                root.AssemblyLinearVelocity = Vector3.new(0, currentVel.Y, 0)
+            end
+        end
+
+        local mag = root.AssemblyLinearVelocity.Magnitude
+        local maxSpeed = CONFIG.TargetSpeed * 1.2
+        if mag > maxSpeed then
+            root.AssemblyLinearVelocity = root.AssemblyLinearVelocity.Unit * maxSpeed
+        end
+    end)
+
+    watchdogConn = char.ChildAdded:Connect(function(child)
+        if child:IsA("Humanoid") and child ~= hum then
+            task.wait(0.05)
+            pcall(function() child:Destroy() end)
+        end
+    end)
+
+    humanoidConn = hum:GetPropertyChangedSignal("Health"):Connect(function()
+        if hum.Health <= 0 then
+            if speedConn then speedConn:Disconnect() speedConn = nil end
+            if moveConn then moveConn:Disconnect() moveConn = nil end
+            if watchdogConn then watchdogConn:Disconnect() watchdogConn = nil end
+            if humanoidConn then humanoidConn:Disconnect() humanoidConn = nil end
+            if lagCompConn then lagCompConn:Disconnect() lagCompConn = nil end
+        end
+    end)
+
+    lagCompConn = RunService.Heartbeat:Connect(function()
+        local ping = getPing()
+        if ping > 300 then
+            local root = getRoot()
+            if root then
+                local vel = root.AssemblyLinearVelocity
+                if vel.Magnitude > CONFIG.TargetSpeed * 0.5 then
+                    root.AssemblyLinearVelocity = vel.Unit * CONFIG.TargetSpeed * 0.5
+                end
+            end
+        end
+    end)
+end
+
+local function onSpawn()
+    task.wait(CONFIG.RespawnDelay)
+
+    if deathConn then
+        deathConn:Disconnect()
+        deathConn = nil
+    end
+
+    local char = LocalPlayer.Character
+    if not char then return end
+
+    local hum = doHumanoidBypass()
+    if hum then
+        startAntiRubberband(hum)
+    end
+
+    deathConn = char:WaitForChild("Humanoid", 5):GetPropertyChangedSignal("Health"):Connect(function()
+        local hum2 = getHum()
+        if hum2 and hum2.Health <= 0 then
+            if speedConn then speedConn:Disconnect() speedConn = nil end
+            if moveConn then moveConn:Disconnect() moveConn = nil end
+            if watchdogConn then watchdogConn:Disconnect() watchdogConn = nil end
+            if humanoidConn then humanoidConn:Disconnect() humanoidConn = nil end
+            if lagCompConn then lagCompConn:Disconnect() lagCompConn = nil end
+        end
+    end)
+end
+
+onSpawn()
+
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(CONFIG.RespawnDelay)
+    onSpawn()
+end)
+
+getgenv().SAE = {
+    setSpeed = function(speed) CONFIG.TargetSpeed = speed end,
+    setWalkSpeed = function(speed) CONFIG.WalkSpeed = speed end,
+    getBypassedHum = function() return getHum() end,
+    rebypass = function() onSpawn() end,
+}
