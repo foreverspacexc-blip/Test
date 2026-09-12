@@ -1,134 +1,427 @@
--- [[ INVIS HUB LOADING SCREEN ]] --
+-- ═══════════════════════════════════════════════════════════════
+--                 INVIS HUB — RISE LOADING SCREEN
+--                 Rise UI Style / Dark Blue Theme
+-- ═══════════════════════════════════════════════════════════════
 
--- ดึง CoreGui ผ่าน gethui() เพื่อความปลอดภัย
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- CoreGui / gethui
 local TargetGui = (gethui and gethui()) or game:GetService("CoreGui")
 
--- เคลียร์ GUI เก่าออกถ้ามีการรันซ้ำ
-if TargetGui:FindFirstChild("InvisHubLoading") then
-    TargetGui.InvisHubLoading:Destroy()
+-- Cleanup ถ้ารันซ้ำ
+local old = TargetGui:FindFirstChild("InvisHubLoading")
+if old then
+    old:Destroy()
 end
 
--- สร้าง ScreenGui
+-- ═══════════════════════════════════════════════════════════════
+-- SCREEN GUI
+-- ═══════════════════════════════════════════════════════════════
+
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "InvisHubLoading"
-ScreenGui.Parent = TargetGui
-ScreenGui.IgnoreGuiInset = true -- คลุมเต็มจอถึงขอบบน
+ScreenGui.IgnoreGuiInset = true
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.DisplayOrder = 999999
+ScreenGui.Parent = TargetGui
 
--- สร้างหน้าจอสีดำ
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5) -- สีดำสนิท
-MainFrame.BorderSizePixel = 0
-MainFrame.Size = UDim2.new(1, 0, 1, 0)
-MainFrame.Position = UDim2.new(0, 0, 0, 0)
-MainFrame.BackgroundTransparency = 1 -- ตั้งให้โปร่งใสก่อนเพื่อทำ Fade in
+-- ═══════════════════════════════════════════════════════════════
+-- BACKGROUND
+-- ═══════════════════════════════════════════════════════════════
 
--- ข้อความ INVIS HUB
-local Title = Instance.new("TextLabel")
-Title.Parent = MainFrame
-Title.BackgroundTransparency = 1
-Title.Position = UDim2.new(0.5, -150, 0.5, -60)
-Title.Size = UDim2.new(0, 300, 0, 50)
-Title.Font = Enum.Font.GothamBold
-Title.Text = "INVIS HUB"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 45
-Title.TextTransparency = 1
+local Background = Instance.new("Frame")
+Background.Name = "Background"
+Background.Size = UDim2.fromScale(1, 1)
+Background.BackgroundColor3 = Color3.fromRGB(8, 9, 12)
+Background.BorderSizePixel = 0
+Background.BackgroundTransparency = 1
+Background.Parent = ScreenGui
 
--- เอฟเฟกต์เรืองแสงเท่ๆ สีม่วงดาร์กๆ
-local Glow = Instance.new("UIStroke")
-Glow.Parent = Title
-Glow.Color = Color3.fromRGB(120, 0, 255) 
-Glow.Thickness = 2
-Glow.Transparency = 1
+-- subtle center glow
+local Glow = Instance.new("ImageLabel")
+Glow.Name = "Glow"
+Glow.AnchorPoint = Vector2.new(0.5, 0.5)
+Glow.Position = UDim2.fromScale(0.5, 0.5)
+Glow.Size = UDim2.fromOffset(520, 320)
+Glow.BackgroundTransparency = 1
+Glow.Image = "rbxassetid://17183270335"
+Glow.ImageColor3 = Color3.fromRGB(50, 70, 160)
+Glow.ImageTransparency = 1
+Glow.Parent = Background
 
--- ข้อความสถานะการโหลด
-local StatusText = Instance.new("TextLabel")
-StatusText.Parent = MainFrame
-StatusText.BackgroundTransparency = 1
-StatusText.Position = UDim2.new(0.5, -100, 0.5, 15)
-StatusText.Size = UDim2.new(0, 200, 0, 20)
-StatusText.Font = Enum.Font.Gotham
-StatusText.Text = "Initializing..."
-StatusText.TextColor3 = Color3.fromRGB(150, 150, 150)
-StatusText.TextSize = 14
-StatusText.TextTransparency = 1
+-- ═══════════════════════════════════════════════════════════════
+-- MAIN CARD
+-- ═══════════════════════════════════════════════════════════════
 
--- กรอบหลอดโหลด
-local LoadingBarBack = Instance.new("Frame")
-LoadingBarBack.Parent = MainFrame
-LoadingBarBack.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-LoadingBarBack.BorderSizePixel = 0
-LoadingBarBack.Position = UDim2.new(0.5, -100, 0.5, 45)
-LoadingBarBack.Size = UDim2.new(0, 200, 0, 4)
-LoadingBarBack.BackgroundTransparency = 1
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.AnchorPoint = Vector2.new(0.5, 0.5)
+Main.Position = UDim2.fromScale(0.5, 0.5)
+Main.Size = UDim2.fromOffset(430, 245)
+Main.BackgroundColor3 = Color3.fromRGB(19, 20, 24)
+Main.BackgroundTransparency = 1
+Main.BorderSizePixel = 0
+Main.ClipsDescendants = true
+Main.Parent = Background
 
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(1, 0)
-UICorner.Parent = LoadingBarBack
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 18)
+MainCorner.Parent = Main
 
--- หลอดโหลด (สีขาว)
-local LoadingBar = Instance.new("Frame")
-LoadingBar.Parent = LoadingBarBack
-LoadingBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-LoadingBar.BorderSizePixel = 0
-LoadingBar.Size = UDim2.new(0, 0, 1, 0)
-LoadingBar.BackgroundTransparency = 1
+-- Border
+local Border = Instance.new("UIStroke")
+Border.Color = Color3.fromRGB(43, 45, 54)
+Border.Thickness = 1
+Border.Transparency = 1
+Border.Parent = Main
 
-local UICorner2 = Instance.new("UICorner")
-UICorner2.CornerRadius = UDim.new(1, 0)
-UICorner2.Parent = LoadingBar
+-- ═══════════════════════════════════════════════════════════════
+-- TOP ACCENT
+-- ═══════════════════════════════════════════════════════════════
 
--- ระบบ Tween Animation (เฟดเข้า-ออก แบบนุ่มนวล)
-local TweenService = game:GetService("TweenService")
-local fadeInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local Accent = Instance.new("Frame")
+Accent.Name = "Accent"
+Accent.Position = UDim2.new(0, 0, 0, 0)
+Accent.Size = UDim2.new(1, 0, 0, 3)
+Accent.BackgroundColor3 = Color3.fromRGB(66, 89, 182)
+Accent.BackgroundTransparency = 1
+Accent.BorderSizePixel = 0
+Accent.Parent = Main
 
--- เริ่มเล่น Animation เฟดเข้า
-TweenService:Create(MainFrame, fadeInfo, {BackgroundTransparency = 0}):Play()
-task.wait(0.5)
-TweenService:Create(Title, fadeInfo, {TextTransparency = 0}):Play()
-TweenService:Create(Glow, fadeInfo, {Transparency = 0.3}):Play()
-TweenService:Create(StatusText, fadeInfo, {TextTransparency = 0}):Play()
-TweenService:Create(LoadingBarBack, fadeInfo, {BackgroundTransparency = 0}):Play()
-TweenService:Create(LoadingBar, fadeInfo, {BackgroundTransparency = 0}):Play()
-task.wait(0.5)
+local AccentGradient = Instance.new("UIGradient")
+AccentGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(66, 89, 182)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(37, 57, 137))
+})
+AccentGradient.Rotation = 20
+AccentGradient.Parent = Accent
 
--- ฟังก์ชันรันหลอดโหลด
-local function updateStatus(text, progress, delayTime)
-    StatusText.Text = text
-    TweenService:Create(LoadingBar, TweenInfo.new(delayTime, Enum.EasingStyle.Linear), {Size = UDim2.new(progress, 0, 1, 0)}):Play()
-    task.wait(delayTime)
+-- ═══════════════════════════════════════════════════════════════
+-- LOGO
+-- ═══════════════════════════════════════════════════════════════
+
+local Logo = Instance.new("TextLabel")
+Logo.Name = "Logo"
+Logo.AnchorPoint = Vector2.new(0.5, 0.5)
+Logo.Position = UDim2.new(0.5, 0, 0, 63)
+Logo.Size = UDim2.fromOffset(170, 45)
+Logo.BackgroundTransparency = 1
+Logo.FontFace = Font.new(
+    "rbxasset://fonts/families/Montserrat.json",
+    Enum.FontWeight.Bold
+)
+Logo.Text = "INVIS"
+Logo.TextColor3 = Color3.fromRGB(255, 255, 255)
+Logo.TextSize = 35
+Logo.TextTransparency = 1
+Logo.Parent = Main
+
+-- HUB subtitle
+local Hub = Instance.new("TextLabel")
+Hub.Name = "Hub"
+Hub.AnchorPoint = Vector2.new(0.5, 0.5)
+Hub.Position = UDim2.new(0.5, 0, 0, 91)
+Hub.Size = UDim2.fromOffset(100, 18)
+Hub.BackgroundTransparency = 1
+Hub.FontFace = Font.new(
+    "rbxasset://fonts/families/Montserrat.json",
+    Enum.FontWeight.SemiBold
+)
+Hub.Text = "H U B"
+Hub.TextColor3 = Color3.fromRGB(130, 145, 205)
+Hub.TextSize = 11
+Hub.TextTransparency = 1
+Hub.Parent = Main
+
+-- ═══════════════════════════════════════════════════════════════
+-- STATUS
+-- ═══════════════════════════════════════════════════════════════
+
+local Status = Instance.new("TextLabel")
+Status.Name = "Status"
+Status.AnchorPoint = Vector2.new(0.5, 0)
+Status.Position = UDim2.new(0.5, 0, 0, 125)
+Status.Size = UDim2.fromOffset(300, 20)
+Status.BackgroundTransparency = 1
+Status.FontFace = Font.new(
+    "rbxasset://fonts/families/Montserrat.json",
+    Enum.FontWeight.SemiBold
+)
+Status.Text = "Initializing..."
+Status.TextColor3 = Color3.fromRGB(180, 182, 190)
+Status.TextSize = 12
+Status.TextTransparency = 1
+Status.Parent = Main
+
+-- ═══════════════════════════════════════════════════════════════
+-- LOADING BAR
+-- ═══════════════════════════════════════════════════════════════
+
+local BarBack = Instance.new("Frame")
+BarBack.Name = "BarBack"
+BarBack.AnchorPoint = Vector2.new(0.5, 0)
+BarBack.Position = UDim2.new(0.5, 0, 0, 160)
+BarBack.Size = UDim2.fromOffset(310, 5)
+BarBack.BackgroundColor3 = Color3.fromRGB(27, 28, 33)
+BarBack.BackgroundTransparency = 1
+BarBack.BorderSizePixel = 0
+BarBack.Parent = Main
+
+local BarCorner = Instance.new("UICorner")
+BarCorner.CornerRadius = UDim.new(1, 0)
+BarCorner.Parent = BarBack
+
+local Bar = Instance.new("Frame")
+Bar.Name = "Bar"
+Bar.Size = UDim2.new(0, 0, 1, 0)
+Bar.BackgroundColor3 = Color3.fromRGB(66, 89, 182)
+Bar.BackgroundTransparency = 1
+Bar.BorderSizePixel = 0
+Bar.Parent = BarBack
+
+local BarCorner2 = Instance.new("UICorner")
+BarCorner2.CornerRadius = UDim.new(1, 0)
+BarCorner2.Parent = Bar
+
+local BarGradient = Instance.new("UIGradient")
+BarGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(66, 89, 182)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(37, 57, 137))
+})
+BarGradient.Rotation = 20
+BarGradient.Parent = Bar
+
+-- ═══════════════════════════════════════════════════════════════
+-- PERCENTAGE
+-- ═══════════════════════════════════════════════════════════════
+
+local Percentage = Instance.new("TextLabel")
+Percentage.Name = "Percentage"
+Percentage.AnchorPoint = Vector2.new(0.5, 0)
+Percentage.Position = UDim2.new(0.5, 0, 0, 177)
+Percentage.Size = UDim2.fromOffset(100, 18)
+Percentage.BackgroundTransparency = 1
+Percentage.FontFace = Font.new(
+    "rbxasset://fonts/families/Montserrat.json",
+    Enum.FontWeight.SemiBold
+)
+Percentage.Text = "0%"
+Percentage.TextColor3 = Color3.fromRGB(120, 125, 140)
+Percentage.TextSize = 10
+Percentage.TextTransparency = 1
+Percentage.Parent = Main
+
+-- ═══════════════════════════════════════════════════════════════
+-- TWEEN SETTINGS
+-- ═══════════════════════════════════════════════════════════════
+
+local FadeIn = TweenInfo.new(
+    0.6,
+    Enum.EasingStyle.Circular,
+    Enum.EasingDirection.InOut
+)
+
+local FadeOut = TweenInfo.new(
+    0.5,
+    Enum.EasingStyle.Circular,
+    Enum.EasingDirection.InOut
+)
+
+local function tween(object, info, properties)
+    return TweenService:Create(object, info, properties)
 end
 
--- ลำดับการโหลดสถานะต่างๆ
-updateStatus("Checking Security...", 0.3, 0.5)
-updateStatus("Bypassing Anti-Cheat...", 0.6, 0.6)
-updateStatus("Fetching Scripts...", 0.9, 0.7)
+-- ═══════════════════════════════════════════════════════════════
+-- FADE IN
+-- ═══════════════════════════════════════════════════════════════
 
--- [[ รันสคริปต์หลักที่กำหนดไว้ ]] --
-updateStatus("Executing...", 1, 0.4)
+tween(Background, FadeIn, {
+    BackgroundTransparency = 0
+}):Play()
+
+tween(Glow, FadeIn, {
+    ImageTransparency = 0.88
+}):Play()
+
+task.wait(0.15)
+
+tween(Main, FadeIn, {
+    BackgroundTransparency = 0.08
+}):Play()
+
+tween(Border, FadeIn, {
+    Transparency = 0
+}):Play()
+
+tween(Accent, FadeIn, {
+    BackgroundTransparency = 0
+}):Play()
+
+tween(Logo, FadeIn, {
+    TextTransparency = 0
+}):Play()
+
+tween(Hub, FadeIn, {
+    TextTransparency = 0
+}):Play()
+
+tween(Status, FadeIn, {
+    TextTransparency = 0
+}):Play()
+
+tween(BarBack, FadeIn, {
+    BackgroundTransparency = 0
+}):Play()
+
+tween(Bar, FadeIn, {
+    BackgroundTransparency = 0
+}):Play()
+
+tween(Percentage, FadeIn, {
+    TextTransparency = 0
+}):Play()
+
+task.wait(0.7)
+
+-- ═══════════════════════════════════════════════════════════════
+-- LOADING FUNCTION
+-- ═══════════════════════════════════════════════════════════════
+
+local function updateStatus(text, progress, duration)
+
+    Status.Text = text
+
+    local percent = math.floor(progress * 100)
+    Percentage.Text = percent .. "%"
+
+    tween(
+        Bar,
+        TweenInfo.new(
+            duration,
+            Enum.EasingStyle.Quad,
+            Enum.EasingDirection.Out
+        ),
+        {
+            Size = UDim2.new(progress, 0, 1, 0)
+        }
+    ):Play()
+
+    task.wait(duration)
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- LOADING STEPS
+-- ═══════════════════════════════════════════════════════════════
+
+updateStatus(
+    "Initializing Rise interface...",
+    0.20,
+    0.45
+)
+
+updateStatus(
+    "Loading configuration...",
+    0.40,
+    0.45
+)
+
+updateStatus(
+    "Preparing interface...",
+    0.65,
+    0.55
+)
+
+updateStatus(
+    "Fetching scripts...",
+    0.85,
+    0.60
+)
+
+updateStatus(
+    "Executing...",
+    1,
+    0.45
+)
+
+-- ═══════════════════════════════════════════════════════════════
+-- MAIN SCRIPT
+-- ═══════════════════════════════════════════════════════════════
 
 pcall(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/foreverspacexc-blip/Test/refs/heads/main/INVISBladeBallMain.txt"))()
+
+    loadstring(
+        game:HttpGet(
+            "https://raw.githubusercontent.com/foreverspacexc-blip/Test/refs/heads/main/INVISBladeBallMain.txt"
+        )
+    )()
+
 end)
 
--- แจ้งว่าโหลดเสร็จแล้ว
-StatusText.Text = "Welcome to INVIS HUB"
-StatusText.TextColor3 = Color3.fromRGB(255, 255, 255)
-task.wait(1)
+-- ═══════════════════════════════════════════════════════════════
+-- COMPLETE
+-- ═══════════════════════════════════════════════════════════════
 
--- เริ่มเล่น Animation เฟดออก
-TweenService:Create(Title, fadeInfo, {TextTransparency = 1}):Play()
-TweenService:Create(Glow, fadeInfo, {Transparency = 1}):Play()
-TweenService:Create(StatusText, fadeInfo, {TextTransparency = 1}):Play()
-TweenService:Create(LoadingBarBack, fadeInfo, {BackgroundTransparency = 1}):Play()
-TweenService:Create(LoadingBar, fadeInfo, {BackgroundTransparency = 1}):Play()
-task.wait(0.5)
+Status.Text = "Welcome to INVIS HUB"
+Status.TextColor3 = Color3.fromRGB(255, 255, 255)
+Percentage.Text = "100%"
 
-TweenService:Create(MainFrame, fadeInfo, {BackgroundTransparency = 1}):Play()
-task.wait(0.5)
+task.wait(0.9)
 
--- ลบ UI ทิ้งเพื่อไม่ให้กินทรัพยากรเครื่อง
+-- ═══════════════════════════════════════════════════════════════
+-- FADE OUT
+-- ═══════════════════════════════════════════════════════════════
+
+tween(Logo, FadeOut, {
+    TextTransparency = 1
+}):Play()
+
+tween(Hub, FadeOut, {
+    TextTransparency = 1
+}):Play()
+
+tween(Status, FadeOut, {
+    TextTransparency = 1
+}):Play()
+
+tween(Percentage, FadeOut, {
+    TextTransparency = 1
+}):Play()
+
+tween(BarBack, FadeOut, {
+    BackgroundTransparency = 1
+}):Play()
+
+tween(Bar, FadeOut, {
+    BackgroundTransparency = 1
+}):Play()
+
+tween(Accent, FadeOut, {
+    BackgroundTransparency = 1
+}):Play()
+
+tween(Border, FadeOut, {
+    Transparency = 1
+}):Play()
+
+tween(Glow, FadeOut, {
+    ImageTransparency = 1
+}):Play()
+
+task.wait(0.25)
+
+tween(Main, FadeOut, {
+    BackgroundTransparency = 1
+}):Play()
+
+task.wait(0.2)
+
+tween(Background, FadeOut, {
+    BackgroundTransparency = 1
+}):Play()
+
+task.wait(0.55)
+
 ScreenGui:Destroy()
