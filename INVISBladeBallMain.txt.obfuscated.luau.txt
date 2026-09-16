@@ -1,250 +1,96 @@
--- ═══════════════════════════════════════════════════════════════
---                 INVIS HUB — RISE LOADING SCREEN
---                 Rise UI Style / Dark Blue Theme
--- ═══════════════════════════════════════════════════════════════
-
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-
-local LocalPlayer = Players.LocalPlayer
-local TargetGui = (gethui and gethui()) or game:GetService("CoreGui")
-local CoreGui = game:GetService("CoreGui")
-
--- Cleanup ถ้ารันซ้ำ
-local old = TargetGui:FindFirstChild("InvisHubLoading")
-if old then old:Destroy() end
-
--- ═══════════════════════════════════════════════════════════════
--- SCREEN GUI & OBJECTS
--- ═══════════════════════════════════════════════════════════════
-
+-- สร้างหน้าต่าง GUI พื้นฐาน
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "InvisHubLoading"
-ScreenGui.IgnoreGuiInset = true
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.DisplayOrder = 999999
-ScreenGui.Parent = TargetGui
+local MainFrame = Instance.new("Frame")
+local UICorner = Instance.new("UICorner")
+local Title = Instance.new("TextLabel")
+local V1Button = Instance.new("TextButton")
+local V2Button = Instance.new("TextButton")
+local ButtonCorner1 = Instance.new("UICorner")
+local ButtonCorner2 = Instance.new("UICorner")
 
-local Background = Instance.new("Frame")
-Background.Name = "Background"
-Background.Size = UDim2.fromScale(1, 1)
-Background.BackgroundColor3 = Color3.fromRGB(8, 9, 12)
-Background.BorderSizePixel = 0
-Background.BackgroundTransparency = 1
-Background.Parent = ScreenGui
+-- ตั้งค่า ScreenGui ป้องกันการหลุดเมื่อตัวละครตาย
+ScreenGui.Name = "VersionSelectorGUI"
+ScreenGui.Parent = game:GetService("CoreGui") or game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
 
-local Glow = Instance.new("ImageLabel")
-Glow.Name = "Glow"
-Glow.AnchorPoint = Vector2.new(0.5, 0.5)
-Glow.Position = UDim2.fromScale(0.5, 0.5)
-Glow.Size = UDim2.fromOffset(520, 320)
-Glow.BackgroundTransparency = 1
-Glow.Image = "rbxassetid://17183270335"
-Glow.ImageColor3 = Color3.fromRGB(50, 70, 160)
-Glow.ImageTransparency = 1
-Glow.Parent = Background
+-- หน้าต่างหลัก (Main Frame)
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+MainFrame.Position = UDim2.new(0.5, -125, 0.5, -75) -- อยู่ตรงกลางจอพอดี
+MainFrame.Size = UDim2.new(0, 250, 0, 160)
+MainFrame.Active = true
+MainFrame.Draggable = true -- สามารถลากย้ายหน้าต่างบนจอได้
 
-local Main = Instance.new("Frame")
-Main.Name = "Main"
-Main.AnchorPoint = Vector2.new(0.5, 0.5)
-Main.Position = UDim2.fromScale(0.5, 0.5)
-Main.Size = UDim2.fromOffset(430, 245)
-Main.BackgroundColor3 = Color3.fromRGB(19, 20, 24)
-Main.BackgroundTransparency = 1
-Main.BorderSizePixel = 0
-Main.ClipsDescendants = true
-Main.Parent = Background
+UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.Parent = MainFrame
 
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 18)
-MainCorner.Parent = Main
+-- หัวข้อ (Title)
+Title.Name = "Title"
+Title.Parent = MainFrame
+Title.BackgroundTransparency = 1.000
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Font = Enum.Font.GothamBold
+Title.Text = "SELECT VERSION"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 16.000
 
-local Border = Instance.new("UIStroke")
-Border.Color = Color3.fromRGB(43, 45, 54)
-Border.Thickness = 1
-Border.Transparency = 1
-Border.Parent = Main
+-- ปุ่มเลือก V1
+V1Button.Name = "V1Button"
+V1Button.Parent = MainFrame
+V1Button.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+V1Button.Position = UDim2.new(0, 25, 0, 50)
+V1Button.Size = UDim2.new(0, 200, 0, 40)
+V1Button.Font = Enum.Font.Gotham
+V1Button.Text = "Execute V1"
+V1Button.TextColor3 = Color3.fromRGB(85, 255, 127) -- สีเขียว
+V1Button.TextSize = 14.000
 
-local Accent = Instance.new("Frame")
-Accent.Name = "Accent"
-Accent.Size = UDim2.new(1, 0, 0, 3)
-Accent.BackgroundColor3 = Color3.fromRGB(66, 89, 182)
-Accent.BackgroundTransparency = 1
-Accent.BorderSizePixel = 0
-Accent.Parent = Main
+ButtonCorner1.CornerRadius = UDim.new(0, 8)
+ButtonCorner1.Parent = V1Button
 
-local AccentGradient = Instance.new("UIGradient")
-AccentGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(66, 89, 182)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(37, 57, 137))
-})
-AccentGradient.Rotation = 20
-AccentGradient.Parent = Accent
+-- ปุ่มเลือก V2
+V2Button.Name = "V2Button"
+V2Button.Parent = MainFrame
+V2Button.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+V2Button.Position = UDim2.new(0, 25, 0, 100)
+V2Button.Size = UDim2.new(0, 200, 0, 40)
+V2Button.Font = Enum.Font.Gotham
+V2Button.Text = "Execute V2"
+V2Button.TextColor3 = Color3.fromRGB(85, 170, 255) -- สีฟ้า
+V2Button.TextSize = 14.000
 
-local Logo = Instance.new("TextLabel")
-Logo.Name = "Logo"
-Logo.AnchorPoint = Vector2.new(0.5, 0.5)
-Logo.Position = UDim2.new(0.5, 0, 0, 63)
-Logo.Size = UDim2.fromOffset(170, 45)
-Logo.BackgroundTransparency = 1
-Logo.FontFace = Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.Bold)
-Logo.Text = "INVIS"
-Logo.TextColor3 = Color3.fromRGB(255, 255, 255)
-Logo.TextSize = 35
-Logo.TextTransparency = 1
-Logo.Parent = Main
+ButtonCorner2.CornerRadius = UDim.new(0, 8)
+ButtonCorner2.Parent = V2Button
 
-local Hub = Instance.new("TextLabel")
-Hub.Name = "Hub"
-Hub.AnchorPoint = Vector2.new(0.5, 0.5)
-Hub.Position = UDim2.new(0.5, 0, 0, 91)
-Hub.Size = UDim2.fromOffset(100, 18)
-Hub.BackgroundTransparency = 1
-Hub.FontFace = Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.SemiBold)
-Hub.Text = "H U B"
-Hub.TextColor3 = Color3.fromRGB(130, 145, 205)
-Hub.TextSize = 11
-Hub.TextTransparency = 1
-Hub.Parent = Main
+-- =======================================================
+-- ฟังก์ชันการทำงานเมื่อกดปุ่ม (Event Listeners)
+-- =======================================================
 
-local Status = Instance.new("TextLabel")
-Status.Name = "Status"
-Status.AnchorPoint = Vector2.new(0.5, 0)
-Status.Position = UDim2.new(0.5, 0, 0, 125)
-Status.Size = UDim2.fromOffset(300, 20)
-Status.BackgroundTransparency = 1
-Status.FontFace = Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.SemiBold)
-Status.Text = "Initializing..."
-Status.TextColor3 = Color3.fromRGB(180, 182, 190)
-Status.TextSize = 12
-Status.TextTransparency = 1
-Status.Parent = Main
+-- เมื่อกดปุ่ม V1
+V1Button.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy() -- ปิด GUI ทันทีที่กดเลือก
+    
+    task.spawn(function()
+        -- 1. ดึงซอร์สโค้ดธรรมดามาจาก GitHub
+        local source = game:HttpGet("https://raw.githubusercontent.com/foreverspacexc-blip/Test/refs/heads/main/INVISBladeBallMain.txt")
 
-local BarBack = Instance.new("Frame")
-BarBack.Name = "BarBack"
-BarBack.AnchorPoint = Vector2.new(0.5, 0)
-BarBack.Position = UDim2.new(0.5, 0, 0, 160)
-BarBack.Size = UDim2.fromOffset(310, 5)
-BarBack.BackgroundColor3 = Color3.fromRGB(27, 28, 33)
-BarBack.BackgroundTransparency = 1
-BarBack.BorderSizePixel = 0
-BarBack.Parent = Main
+        -- 2. แปลงโค้ดที่ดึงมาให้กลายเป็นเลขฐาน 16 (Hex) ทั้งหมด
+        local hex = source:gsub(".", function(c)
+            return string.format("%02X", string.byte(c))
+        end)
 
-local BarCorner = Instance.new("UICorner")
-BarCorner.CornerRadius = UDim.new(1, 0)
-BarCorner.Parent = BarBack
-
-local Bar = Instance.new("Frame")
-Bar.Name = "Bar"
-Bar.Size = UDim2.new(0, 0, 1, 0)
-Bar.BackgroundColor3 = Color3.fromRGB(66, 89, 182)
-Bar.BackgroundTransparency = 1
-Bar.BorderSizePixel = 0
-Bar.Parent = BarBack
-
-local BarCorner2 = Instance.new("UICorner")
-BarCorner2.CornerRadius = UDim.new(1, 0)
-BarCorner2.Parent = Bar
-
-local BarGradient = Instance.new("UIGradient")
-BarGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(66, 89, 182)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(37, 57, 137))
-})
-BarGradient.Rotation = 20
-BarGradient.Parent = Bar
-
-local Percentage = Instance.new("TextLabel")
-Percentage.Name = "Percentage"
-Percentage.AnchorPoint = Vector2.new(0.5, 0)
-Percentage.Position = UDim2.new(0.5, 0, 0, 177)
-Percentage.Size = UDim2.fromOffset(100, 18)
-Percentage.BackgroundTransparency = 1
-Percentage.FontFace = Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.SemiBold)
-Percentage.Text = "0%"
-Percentage.TextColor3 = Color3.fromRGB(120, 125, 140)
-Percentage.TextSize = 10
-Percentage.TextTransparency = 1
-Percentage.Parent = Main
-
-local FadeIn = TweenInfo.new(0.6, Enum.EasingStyle.Circular, Enum.EasingDirection.InOut)
-local FadeOut = TweenInfo.new(0.5, Enum.EasingStyle.Circular, Enum.EasingDirection.InOut)
-local function tween(object, info, properties) return TweenService:Create(object, info, properties) end
-
--- FADE IN ANIMATION
-tween(Background, FadeIn, {BackgroundTransparency = 0}):Play()
-tween(Glow, FadeIn, {ImageTransparency = 0.88}):Play()
-task.wait(0.15)
-tween(Main, FadeIn, {BackgroundTransparency = 0.08}):Play()
-tween(Border, FadeIn, {Transparency = 0}):Play()
-tween(Accent, FadeIn, {BackgroundTransparency = 0}):Play()
-tween(Logo, FadeIn, {TextTransparency = 0}):Play()
-tween(Hub, FadeIn, {TextTransparency = 0}):Play()
-tween(Status, FadeIn, {TextTransparency = 0}):Play()
-tween(BarBack, FadeIn, {BackgroundTransparency = 0}):Play()
-tween(Bar, FadeIn, {BackgroundTransparency = 0}):Play()
-tween(Percentage, FadeIn, {TextTransparency = 0}):Play()
-task.wait(0.7)
-
-local function updateStatus(text, progress, duration)
-    Status.Text = text
-    Percentage.Text = math.floor(progress * 100) .. "%"
-    tween(Bar, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(progress, 0, 1, 0)}):Play()
-    task.wait(duration)
-end
-
--- LOADER STEPS
-updateStatus("Initializing Rise interface...", 0.20, 0.45)
-updateStatus("Loading configuration...", 0.40, 0.45)
-updateStatus("Preparing interface...", 0.65, 0.55)
-updateStatus("Fetching scripts...", 0.85, 0.60)
-
-Status.Text = "Executing Luarmor Loader..."
-Percentage.Text = "99%"
-tween(Bar, TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0.99, 0, 1, 0)}):Play()
-task.wait(0.45)
-
--- รัน Luarmor แยกเธรด (ป้องกันหน้าจอโหลด Freeze ค้าง)
-task.spawn(function()
-    pcall(function()
-        loadstring(game:HttpGet("https://api.luarmor.net/files/v4/loaders/de01fd82b0ca4bb507cc71cd2da743f3.lua"))()
+        -- 3. สั่งรันโค้ดจากตัวแปร hex โดยตรง
+        assert(loadstring(hex:gsub("%x%x", function(h)
+            return string.char(tonumber(h, 16))
+        end)))()
     end)
 end)
--- ═══════════════════════════════════════════════════════════════
--- LOOP CHECK & CLOSE SCREEN
--- ═══════════════════════════════════════════════════════════════
 
--- วนลูปตรวจสอบ loaddone ที่ถูกสร้างจากสคริปต์หลักของคุณใน CoreGui
-task.wait(5) 
-
--- เมื่อตรวจพบ loaddone ให้ทำการโหลดเสร็จสิ้นทันที
-Status.Text = "Welcome to INVIS HUB"
-Status.TextColor3 = Color3.fromRGB(255, 255, 255)
-Percentage.Text = "100%"
-tween(Bar, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 1, 0)}):Play()
-
-task.wait(0.8)
-
--- อนิเมชั่น Fade Out ทั้งหมดลง
-tween(Logo, FadeOut, { TextTransparency = 1 }):Play()
-tween(Hub, FadeOut, { TextTransparency = 1 }):Play()
-tween(Status, FadeOut, { TextTransparency = 1 }):Play()
-tween(Percentage, FadeOut, { TextTransparency = 1 }):Play()
-tween(BarBack, FadeOut, { BackgroundTransparency = 1 }):Play()
-tween(Bar, FadeOut, { BackgroundTransparency = 1 }):Play()
-tween(Accent, FadeOut, { BackgroundTransparency = 1 }):Play()
-tween(Border, FadeOut, { Transparency = 1 }):Play()
-tween(Glow, FadeOut, { ImageTransparency = 1 }):Play()
-
-task.wait(0.25)
-tween(Main, FadeOut, { BackgroundTransparency = 1 }):Play()
-task.wait(0.2)
-tween(Background, FadeOut, { BackgroundTransparency = 1 }):Play()
-task.wait(0.55)
-
--- ทำลายหน้าจอโหลดทิ้งอย่างปลอดภัยหลังจากจบอนิเมชั่น
-ScreenGui:Destroy()
-
--- ลบวัตถุ loaddone ใน CoreGui ออกเพื่อเคลียร์ค่าสำหรับรันรอบใหม่
-local finalDone = CoreGui:FindFirstChild("loaddone")
-if finalDone then finalDone:Destroy() end
+-- เมื่อกดปุ่ม V2
+V2Button.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy() -- ปิด GUI ทันทีที่กดเลือก
+    
+    -- รันระบบผ่าน Luarmor
+    loadstring(game:HttpGet("https://api.luarmor.net/files/v4/loaders/de01fd82b0ca4bb507cc71cd2da743f3.lua"))()
+end)
