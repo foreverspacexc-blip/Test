@@ -1,5 +1,6 @@
 -- ═══════════════════════════════════════════════════════════════
--- PART 2: LOADING SCREEN SCRIPT (ตัวเปิดรันหน้าจอโหลด)
+--                 INVIS HUB — RISE LOADING SCREEN
+--                 Rise UI Style / Dark Blue Theme
 -- ═══════════════════════════════════════════════════════════════
 
 local Players = game:GetService("Players")
@@ -7,10 +8,15 @@ local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
 local TargetGui = (gethui and gethui()) or game:GetService("CoreGui")
+local CoreGui = game:GetService("CoreGui")
 
 -- Cleanup ถ้ารันซ้ำ
 local old = TargetGui:FindFirstChild("InvisHubLoading")
 if old then old:Destroy() end
+
+-- ═══════════════════════════════════════════════════════════════
+-- SCREEN GUI & OBJECTS
+-- ═══════════════════════════════════════════════════════════════
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "InvisHubLoading"
@@ -162,9 +168,10 @@ Percentage.TextTransparency = 1
 Percentage.Parent = Main
 
 local FadeIn = TweenInfo.new(0.6, Enum.EasingStyle.Circular, Enum.EasingDirection.InOut)
+local FadeOut = TweenInfo.new(0.5, Enum.EasingStyle.Circular, Enum.EasingDirection.InOut)
 local function tween(object, info, properties) return TweenService:Create(object, info, properties) end
 
--- FADE IN
+-- FADE IN ANIMATION
 tween(Background, FadeIn, {BackgroundTransparency = 0}):Play()
 tween(Glow, FadeIn, {ImageTransparency = 0.88}):Play()
 task.wait(0.15)
@@ -186,83 +193,60 @@ local function updateStatus(text, progress, duration)
     task.wait(duration)
 end
 
--- LOADING ANIMATION STEPS
+-- LOADER STEPS
 updateStatus("Initializing Rise interface...", 0.20, 0.45)
 updateStatus("Loading configuration...", 0.40, 0.45)
 updateStatus("Preparing interface...", 0.65, 0.55)
 updateStatus("Fetching scripts...", 0.85, 0.60)
 
-Status.Text = "Loading Invis Hub..."
+Status.Text = "Executing Luarmor Loader..."
 Percentage.Text = "99%"
 tween(Bar, TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0.99, 0, 1, 0)}):Play()
 task.wait(0.45)
 
--- เรียกโหลดสคริปต์หลักจาก Luarmor (สคริปต์ส่วนที่ 1 จะมารับช่วงต่อเองเมื่อทำงานเสร็จ)
-pcall(function()
-    loadstring(game:HttpGet("https://api.luarmor.net/files/v4/loaders/4d9e0018b5d5f0c0ea920433d34e7fc2.lua"))()
+-- รัน Luarmor แยกเธรด (ป้องกันหน้าจอโหลด Freeze ค้าง)
+task.spawn(function()
+    pcall(function()
+        loadstring(game:HttpGet("https://luarmor.net"))()
+    end)
 end)
-
 -- ═══════════════════════════════════════════════════════════════
--- PART 1: MAIN SCRIPT (สคริปต์หลักที่รันผ่าน Luarmor)
+-- LOOP CHECK & CLOSE SCREEN
 -- ═══════════════════════════════════════════════════════════════
 
--- รันโค้ดระบบหลักของคุณตรงนี้
-print("Invis Hub is starting...")
-
--- [ใส่โค้ดฟังก์ชั่น/ฟีเจอร์หลักของฮับคุณที่นี่]
-
--- เมื่อสคริปต์หลักโหลดเสร็จสิ้นทั้งหมดแล้ว ให้ส่งสัญญาณไปปิด Loading Screen
-local TargetGui = (gethui and gethui()) or game:GetService("CoreGui")
-local LoadingGui = TargetGui:FindFirstChild("InvisHubLoading")
-
-if LoadingGui and LoadingGui:FindFirstChild("Background") then
-    local TweenService = game:GetService("TweenService")
-    local Background = LoadingGui.Background
-    local Main = Background:FindFirstChild("Main")
-    
-    local Status = Main and Main:FindFirstChild("Status")
-    local Percentage = Main and Main:FindFirstChild("Percentage")
-    local Logo = Main and Main:FindFirstChild("Logo")
-    local Hub = Main and Main:FindFirstChild("Hub")
-    local BarBack = Main and Main:FindFirstChild("BarBack")
-    local Bar = BarBack and BarBack:FindFirstChild("Bar")
-    local Accent = Main and Main:FindFirstChild("Accent")
-    local Border = Main and Main:FindFirstChild("UIStroke")
-    local Glow = Background:FindFirstChild("Glow")
-
-    -- อัปเดตสถานะเป็นเสร็จสิ้น
-    if Status then 
-        Status.Text = "Welcome to INVIS HUB" 
-        Status.TextColor3 = Color3.fromRGB(255, 255, 255)
-    end
-    if Percentage then Percentage.Text = "100%" end
-    
-    if BarBack and Bar then
-        TweenService:Create(Bar, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Size = UDim2.new(1, 0, 1, 0)
-        }):Play()
-    end
-
-    task.wait(0.9)
-
-    -- เอฟเฟกต์ Fade Out ข้อมูล
-    local FadeOut = TweenInfo.new(0.5, Enum.EasingStyle.Circular, Enum.EasingDirection.InOut)
-    if Logo then TweenService:Create(Logo, FadeOut, {TextTransparency = 1}):Play() end
-    if Hub then TweenService:Create(Hub, FadeOut, {TextTransparency = 1}):Play() end
-    if Status then TweenService:Create(Status, FadeOut, {TextTransparency = 1}):Play() end
-    if Percentage then TweenService:Create(Percentage, FadeOut, {TextTransparency = 1}):Play() end
-    if BarBack then TweenService:Create(BarBack, FadeOut, {BackgroundTransparency = 1}):Play() end
-    if Bar then TweenService:Create(Bar, FadeOut, {BackgroundTransparency = 1}):Play() end
-    if Accent then TweenService:Create(Accent, FadeOut, {BackgroundTransparency = 1}):Play() end
-    if Border then TweenService:Create(Border, FadeOut, {Transparency = 1}):Play() end
-    if Glow then TweenService:Create(Glow, FadeOut, {ImageTransparency = 1}):Play() end
-
-    task.wait(0.25)
-    if Main then TweenService:Create(Main, FadeOut, {BackgroundTransparency = 1}):Play() end
-    task.wait(0.2)
-    TweenService:Create(Background, FadeOut, {BackgroundTransparency = 1}):Play()
-    task.wait(0.55)
-
-    -- ลบ GUI ทิ้งหลังจากอนิเมชั่นดับลงเสร็จสิ้น
-    LoadingGui:Destroy()
+-- วนลูปตรวจสอบ loaddone ที่ถูกสร้างจากสคริปต์หลักของคุณใน CoreGui
+while not CoreGui:FindFirstChild("loaddone") do
+    task.wait(0.05)
 end
+
+-- เมื่อตรวจพบ loaddone ให้ทำการโหลดเสร็จสิ้นทันที
+Status.Text = "Welcome to INVIS HUB"
+Status.TextColor3 = Color3.fromRGB(255, 255, 255)
+Percentage.Text = "100%"
+tween(Bar, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 1, 0)}):Play()
+
+task.wait(0.8)
+
+-- อนิเมชั่น Fade Out ทั้งหมดลง
+tween(Logo, FadeOut, { TextTransparency = 1 }):Play()
+tween(Hub, FadeOut, { TextTransparency = 1 }):Play()
+tween(Status, FadeOut, { TextTransparency = 1 }):Play()
+tween(Percentage, FadeOut, { TextTransparency = 1 }):Play()
+tween(BarBack, FadeOut, { BackgroundTransparency = 1 }):Play()
+tween(Bar, FadeOut, { BackgroundTransparency = 1 }):Play()
+tween(Accent, FadeOut, { BackgroundTransparency = 1 }):Play()
+tween(Border, FadeOut, { Transparency = 1 }):Play()
+tween(Glow, FadeOut, { ImageTransparency = 1 }):Play()
+
+task.wait(0.25)
+tween(Main, FadeOut, { BackgroundTransparency = 1 }):Play()
+task.wait(0.2)
+tween(Background, FadeOut, { BackgroundTransparency = 1 }):Play()
+task.wait(0.55)
+
+-- ทำลายหน้าจอโหลดทิ้งอย่างปลอดภัยหลังจากจบอนิเมชั่น
+ScreenGui:Destroy()
+
+-- ลบวัตถุ loaddone ใน CoreGui ออกเพื่อเคลียร์ค่าสำหรับรันรอบใหม่
+local finalDone = CoreGui:FindFirstChild("loaddone")
+if finalDone then finalDone:Destroy() end
