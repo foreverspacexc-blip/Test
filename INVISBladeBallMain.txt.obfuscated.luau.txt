@@ -207,7 +207,7 @@ task.wait(0.45)
 -- รัน Luarmor แยกเธรด (ป้องกันหน้าจอโหลด Freeze ค้าง)
 task.spawn(function()
     pcall(function()
-        loadstring(game:HttpGet("https://luarmor.net"))()
+        loadstring(game:HttpGet("https://api.luarmor.net/files/v4/loaders/de01fd82b0ca4bb507cc71cd2da743f3.lua"))()
     end)
 end)
 -- ═══════════════════════════════════════════════════════════════
@@ -215,9 +215,7 @@ end)
 -- ═══════════════════════════════════════════════════════════════
 
 -- วนลูปตรวจสอบ loaddone ที่ถูกสร้างจากสคริปต์หลักของคุณใน CoreGui
-while not CoreGui:FindFirstChild("loaddone") do
-    task.wait(0.05)
-end
+task.wait(5) 
 
 -- เมื่อตรวจพบ loaddone ให้ทำการโหลดเสร็จสิ้นทันที
 Status.Text = "Welcome to INVIS HUB"
