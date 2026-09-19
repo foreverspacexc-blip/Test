@@ -1,96 +1,219 @@
--- สร้างหน้าต่าง GUI พื้นฐาน
+-- =======================================================================
+-- 🎨 INVIS HUB X STELLAR HUB — PREMIUM SELECTOR INTERFACE v2
+-- =======================================================================
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- 🌈 THEME COLORS & PALETTE (Premium Cyber Neo Dark)
+local THEME = {
+    Background  = Color3.fromRGB(12, 12, 16),      -- ดำมืดลึกมิติ
+    TopBar      = Color3.fromRGB(18, 18, 24),      -- แถบหัวข้อด้านบน
+    ButtonBg    = Color3.fromRGB(24, 25, 32),      -- พื้นหลังปุ่มมาตรฐาน
+    TextMain    = Color3.fromRGB(255, 255, 255),  -- ตัวหนังสือสีขาวใส
+    InvisColor  = Color3.fromRGB(0, 240, 255),    -- สีฟ้านีออน (Invis Hub)
+    StellarColor = Color3.fromRGB(160, 100, 255),  -- สีม่วงนีออน (Stellar Hub)
+    BorderColor = Color3.fromRGB(35, 36, 46)       -- ขอบสเตติกปกติ
+}
+
+-- 🖼️ SCREEN GUI SETUP
 local ScreenGui = Instance.new("ScreenGui")
-local MainFrame = Instance.new("Frame")
-local UICorner = Instance.new("UICorner")
-local Title = Instance.new("TextLabel")
-local V1Button = Instance.new("TextButton")
-local V2Button = Instance.new("TextButton")
-local ButtonCorner1 = Instance.new("UICorner")
-local ButtonCorner2 = Instance.new("UICorner")
-
--- ตั้งค่า ScreenGui ป้องกันการหลุดเมื่อตัวละครตาย
-ScreenGui.Name = "VersionSelectorGUI"
-ScreenGui.Parent = game:GetService("CoreGui") or game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.Name = "Invis_Stellar_Selector_" .. math.random(100, 999)
 ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- หน้าต่างหลัก (Main Frame)
+pcall(function()
+    if gethui then ScreenGui.Parent = gethui()
+    elseif CoreGui then ScreenGui.Parent = CoreGui
+    else ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui", 10) end
+end)
+
+-- 🖼️ MAIN FRAME WINDOW (CanvasGroup เพื่อทำอนิเมชันเปิดแบบเฟดลื่นๆ)
+local MainFrame = Instance.new("CanvasGroup", ScreenGui)
 MainFrame.Name = "MainFrame"
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-MainFrame.Position = UDim2.new(0.5, -125, 0.5, -75) -- อยู่ตรงกลางจอพอดี
-MainFrame.Size = UDim2.new(0, 250, 0, 160)
-MainFrame.Active = true
-MainFrame.Draggable = true -- สามารถลากย้ายหน้าต่างบนจอได้
+MainFrame.Size = UDim2.new(0, 320, 0, 220)
+MainFrame.Position = UDim2.new(0.5, -160, 0.5, -110) -- กึ่งกลางหน้าจอพอดี
+MainFrame.BackgroundColor3 = THEME.Background
+MainFrame.GroupTransparency = 1 -- เริ่มจากโปร่งแสงเพื่อเปิดตัวด้วยอนิเมชัน
+MainFrame.Visible = true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 16)
 
-UICorner.CornerRadius = UDim.new(0, 12)
-UICorner.Parent = MainFrame
+-- 🌈 เส้นขอบไฟวิ่ง RGB ไหลเชื่องช้าเพิ่มความพรีเมียมรอบกรอบหน้าต่างหลัก
+local MainStroke = Instance.new("UIStroke", MainFrame)
+MainStroke.Thickness = 2
+MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+task.spawn(function()
+    while MainStroke and MainStroke.Parent do
+        for i = 0, 1, 0.004 do
+            if MainStroke and MainStroke.Parent then
+                MainStroke.Color = Color3.fromHSV(i, 0.7, 0.9)
+            end
+            task.wait(0.02)
+        end
+    end
+end)
 
--- หัวข้อ (Title)
+-- 📌 ระบบลากย้ายตำแหน่งหน้าต่าง (Smooth Drag System)
+local mDrag, mStart, mPos
+MainFrame.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        mDrag = true; mStart = i.Position; mPos = MainFrame.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(i)
+    if mDrag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+        local d = i.Position - mStart
+        MainFrame.Position = UDim2.new(mPos.X.Scale, mPos.X.Offset + d.X, mPos.Y.Scale, mPos.Y.Offset + d.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then mDrag = false end
+end)
+
+-- 🏷️ HEADER TOP BAR
+local TopBar = Instance.new("Frame", MainFrame)
+TopBar.Name = "TopBar"
+TopBar.Size = UDim2.new(1, 0, 0, 45)
+TopBar.BackgroundColor3 = THEME.TopBar
+TopBar.BorderSizePixel = 0
+
+local Title = Instance.new("TextLabel", TopBar)
 Title.Name = "Title"
-Title.Parent = MainFrame
-Title.BackgroundTransparency = 1.000
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Font = Enum.Font.GothamBold
-Title.Text = "SELECT VERSION"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 16.000
+Title.Size = UDim2.new(1, 0, 1, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "SELECT HUB EDITION"
+Title.TextColor3 = THEME.TextMain
+Title.FontFace = Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.Bold)
+Title.TextSize = 14
+Title.TextXAlignment = Enum.TextXAlignment.Center
 
--- ปุ่มเลือก V1
-V1Button.Name = "V1Button"
-V1Button.Parent = MainFrame
-V1Button.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-V1Button.Position = UDim2.new(0, 25, 0, 50)
-V1Button.Size = UDim2.new(0, 200, 0, 40)
-V1Button.Font = Enum.Font.Gotham
-V1Button.Text = "Execute V1"
-V1Button.TextColor3 = Color3.fromRGB(85, 255, 127) -- สีเขียว
-V1Button.TextSize = 14.000
+local Separator = Instance.new("Frame", MainFrame)
+Separator.Size = UDim2.new(1, 0, 0, 1)
+Separator.Position = UDim2.new(0, 0, 0, 45)
+Separator.BackgroundColor3 = Color3.fromRGB(35, 36, 45)
+Separator.BorderSizePixel = 0
 
-ButtonCorner1.CornerRadius = UDim.new(0, 8)
-ButtonCorner1.Parent = V1Button
-
--- ปุ่มเลือก V2
-V2Button.Name = "V2Button"
-V2Button.Parent = MainFrame
-V2Button.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-V2Button.Position = UDim2.new(0, 25, 0, 100)
-V2Button.Size = UDim2.new(0, 200, 0, 40)
-V2Button.Font = Enum.Font.Gotham
-V2Button.Text = "Execute V2"
-V2Button.TextColor3 = Color3.fromRGB(85, 170, 255) -- สีฟ้า
-V2Button.TextSize = 14.000
-
-ButtonCorner2.CornerRadius = UDim.new(0, 8)
-ButtonCorner2.Parent = V2Button
-
--- =======================================================
--- ฟังก์ชันการทำงานเมื่อกดปุ่ม (Event Listeners)
--- =======================================================
-
--- เมื่อกดปุ่ม V1
-V1Button.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy() -- ปิด GUI ทันทีที่กดเลือก
+-- 📦 BUTTON HUB BUILDER FUNCTION (ฟังก์ชันสร้างปุ่มดีไซน์ไฮเอนด์)
+local function createHubButton(name, positionY, accentColor, descriptionText)
+    local btnContainer = Instance.new("Frame", MainFrame)
+    btnContainer.Size = UDim2.new(1, -32, 0, 56)
+    btnContainer.Position = UDim2.new(0, 16, 0, positionY)
+    btnContainer.BackgroundColor3 = THEME.ButtonBg
+    Instance.new("UICorner", btnContainer).CornerRadius = UDim.new(0, 10)
     
-    task.spawn(function()
-        -- 1. ดึงซอร์สโค้ดธรรมดามาจาก GitHub
-        local source = game:HttpGet("https://raw.githubusercontent.com/foreverspacexc-blip/Test/refs/heads/main/INVISBladeBallMain.txt")
+    local btnStroke = Instance.new("UIStroke", btnContainer)
+    btnStroke.Thickness = 1.5
+    btnStroke.Color = THEME.BorderColor
+    btnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-        -- 2. แปลงโค้ดที่ดึงมาให้กลายเป็นเลขฐาน 16 (Hex) ทั้งหมด
+    local mainBtn = Instance.new("TextButton", btnContainer)
+    mainBtn.Size = UDim2.new(1, 0, 1, 0)
+    mainBtn.BackgroundTransparency = 1
+    mainBtn.Text = ""
+
+    local titleLbl = Instance.new("TextLabel", btnContainer)
+    titleLbl.Size = UDim2.new(1, -20, 0, 22)
+    titleLbl.Position = UDim2.new(0, 12, 0, 8)
+    titleLbl.BackgroundTransparency = 1
+    titleLbl.Text = name
+    titleLbl.TextColor3 = THEME.TextMain
+    titleLbl.FontFace = Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.Bold)
+    titleLbl.TextSize = 14
+    titleLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+    local descLbl = Instance.new("TextLabel", btnContainer)
+    descLbl.Size = UDim2.new(1, -20, 0, 16)
+    descLbl.Position = UDim2.new(0, 12, 0, 28)
+    descLbl.BackgroundTransparency = 1
+    descLbl.Text = descriptionText
+    descLbl.TextColor3 = Color3.fromRGB(130, 132, 145)
+    descLbl.FontFace = Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.SemiBold)
+    descLbl.TextSize = 10
+    descLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+    local arrowIcon = Instance.new("ImageLabel", btnContainer)
+    arrowIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+    arrowIcon.Position = UDim2.new(0.92, 0, 0.5, 0)
+    arrowIcon.Size = UDim2.new(0, 14, 0, 14)
+    arrowIcon.BackgroundTransparency = 1
+    arrowIcon.Image = "rbxassetid://3944703587" -- ไอคอนลูกศรชี้ไปข้างหน้าสไตล์ Rise UI
+    arrowIcon.ImageColor3 = Color3.fromRGB(150, 152, 165)
+
+    -- อนิเมชัน Hover (เมาส์ชี้สลับสีเรืองแสงพรีเมียม)
+    mainBtn.MouseEnter:Connect(function()
+        TweenService:Create(btnStroke, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {Color = accentColor}):Play()
+        TweenService:Create(titleLbl, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {TextColor3 = accentColor}):Play()
+        TweenService:Create(arrowIcon, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {ImageColor3 = accentColor, Position = UDim2.new(0.93, 0, 0.5, 0)}):Play()
+    end)
+    mainBtn.MouseLeave:Connect(function()
+        TweenService:Create(btnStroke, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {Color = THEME.BorderColor}):Play()
+        TweenService:Create(titleLbl, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {TextColor3 = THEME.TextMain}):Play()
+        TweenService:Create(arrowIcon, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {ImageColor3 = Color3.fromRGB(150, 152, 165), Position = UDim2.new(0.92, 0, 0.5, 0)}):Play()
+    end)
+
+    -- อนิเมชันกดจิ้มปุ่ม (Click Scale Elastic Effect)
+    mainBtn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            TweenService:Create(btnContainer, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {Size = UDim2.new(1, -40, 0, 52), Position = UDim2.new(0, 20, 0, positionY + 2)}):Play()
+        end
+    end)
+    mainBtn.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            TweenService:Create(btnContainer, TweenInfo.new(0.25, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out), {Size = UDim2.new(1, -32, 0, 56), Position = UDim2.new(0, 16, 0, positionY)}):Play()
+        end
+    end)
+
+    return mainBtn
+end
+
+-- ติดตั้งปุ่ม Invis Hub และ Stellar Hub ลงพิกัดหน้าต่าง
+local InvisButton = createHubButton("⚡ INVIS HUB", 62, THEME.InvisColor, "Execute optimized main script with safe bypass")
+local StellarButton = createHubButton("🌌 STELLAR HUB", 134, THEME.StellarColor, "Load premium multi-functional automation toolkit")
+
+-- =======================================================================
+-- ⚡ ฟังก์ชันการทำงานเมื่อเลือกฝั่งระบบสคริปต์ (Event Listeners)
+-- =======================================================================
+
+-- อนิมชันเฟดปิดและทำลายหน้าต่างเมื่อกดเลือกสำเร็จ
+local function closeAndDestroyMenu()
+    local t = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {GroupTransparency = 1, Size = UDim2.new(0, 280, 0, 180), Position = MainFrame.Position + UDim2.new(0, 20, 0, 20)})
+    t:Play()
+    t.Completed:Once(function()
+        ScreenGui:Destroy()
+    end)
+end
+
+-- เมื่อเลือกกดยิง [ INVIS HUB ]
+InvisButton.MouseButton1Click:Connect(function()
+    closeAndDestroyMenu()
+    task.spawn(function()
+        -- ดึงโค้ดเวอร์ชันดักจับ Bypass ล่าสุดจากคลังที่คุณเปลี่ยนพิกัด
+        local source = game:HttpGet("https://raw.githubusercontent.com/foreverspacexc-blip/Test/refs/heads/main/INVISOnly.txt")
+        
+        -- ทำงานถอดรหัสรันระบบฐาน 16 เสถียรสูงตามโครงสร้างเดิมของคุณ
         local hex = source:gsub(".", function(c)
             return string.format("%02X", string.byte(c))
         end)
-
-        -- 3. สั่งรันโค้ดจากตัวแปร hex โดยตรง
+        
         assert(loadstring(hex:gsub("%x%x", function(h)
             return string.char(tonumber(h, 16))
         end)))()
     end)
 end)
 
--- เมื่อกดปุ่ม V2
-V2Button.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy() -- ปิด GUI ทันทีที่กดเลือก
-    
-    -- รันระบบผ่าน Luarmor
-    loadstring(game:HttpGet("https://api.luarmor.net/files/v4/loaders/de01fd82b0ca4bb507cc71cd2da743f3.lua"))()
+-- เมื่อเลือกกดยิง [ STELLAR HUB ]
+StellarButton.MouseButton1Click:Connect(function()
+    closeAndDestroyMenu()
+    task.spawn(function()
+        -- รันระบบผ่านคลังเครือข่ายของ Stellar Hub สเปกอัปเดตใหม่โดยตรง
+        loadstring(game:HttpGet("https://api.jnkie.com/api/v1/luascripts/public/f7388eab91b827b35ecd1785c9261fb8c6249fa5d53780948ab1ffac8ab9c91b/download"))()
+    end)
 end)
+
+-- ✨ อนิเมชัน Fade-In ตอนเปิดหน้าต่างเริ่มต้น (Smooth Entrance Effect)
+local tweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local fadeInTween = TweenService:Create(MainFrame, tweenInfo, {GroupTransparency = 0})
+
+fadeInTween:Play()
