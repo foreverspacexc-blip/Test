@@ -169,8 +169,8 @@ local function createHubButton(name, positionY, accentColor, descriptionText)
 end
 
 -- ติดตั้งปุ่ม Invis Hub และ Stellar Hub ลงพิกัดหน้าต่าง
-local InvisButton = createHubButton("⚡ INVIS HUB", 62, THEME.InvisColor, "Execute optimized main script with safe bypass")
-local StellarButton = createHubButton("🌌 STELLAR HUB", 134, THEME.StellarColor, "Load premium multi-functional automation toolkit")
+local InvisButton = createHubButton("⚡ INVIS HUB", 62, THEME.InvisColor, "fast execute and good auto parry")
+local StellarButton = createHubButton("🌌 STELLAR HUB", 134, THEME.StellarColor, "premium gui and good auto spam")
 
 -- =======================================================================
 -- ⚡ ฟังก์ชันการทำงานเมื่อเลือกฝั่งระบบสคริปต์ (Event Listeners)
