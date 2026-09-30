@@ -169,8 +169,8 @@ local function createHubButton(name, positionY, accentColor, descriptionText)
 end
 
 -- ติดตั้งปุ่ม Invis Hub และ Stellar Hub ลงพิกัดหน้าต่าง
-local InvisButton = createHubButton("⚡ INVIS HUB", 62, THEME.InvisColor, "fast execute and good auto parry")
-local StellarButton = createHubButton("🌌 STELLAR HUB", 134, THEME.StellarColor, "premium gui and good auto spam")
+local InvisButton = createHubButton("⚡ INVIS HUB V1", 62, THEME.InvisColor, "fast execute and good auto parry")
+local InvisV2Button = createHubButton("🔥 INVIS HUB V2", 134, THEME.StellarColor, "premium gui and good auto spam")
 
 -- =======================================================================
 -- ⚡ ฟังก์ชันการทำงานเมื่อเลือกฝั่งระบบสคริปต์ (Event Listeners)
@@ -204,11 +204,10 @@ InvisButton.MouseButton1Click:Connect(function()
 end)
 
 -- เมื่อเลือกกดยิง [ STELLAR HUB ]
-StellarButton.MouseButton1Click:Connect(function()
+InvisV2Button.MouseButton1Click:Connect(function()
     closeAndDestroyMenu()
     task.spawn(function()
-        -- รันระบบผ่านคลังเครือข่ายของ Stellar Hub สเปกอัปเดตใหม่โดยตรง
-        loadstring(game:HttpGet("https://api.jnkie.com/api/v1/luascripts/public/f7388eab91b827b35ecd1785c9261fb8c6249fa5d53780948ab1ffac8ab9c91b/download"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/foreverspacexc-blip/INVISHUB/refs/heads/main/gui.txt"))()
     end)
 end)
 
