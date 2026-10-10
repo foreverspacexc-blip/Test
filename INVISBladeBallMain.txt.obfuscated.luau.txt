@@ -1,232 +1,605 @@
-TweenService = game:GetService("TweenService")
-UserInputService = game:GetService("UserInputService")
-CoreGui = game:GetService("CoreGui")
-Players = game:GetService("Players")
-LocalPlayer = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
 
-THEME = {
-    Background  = Color3.fromRGB(12, 12, 16),
-    TopBar      = Color3.fromRGB(18, 18, 24),
-    ButtonBg    = Color3.fromRGB(24, 25, 32),
-    TextMain    = Color3.fromRGB(255, 255, 255),
-    InvisColor  = Color3.fromRGB(0, 240, 255),
-    StellarColor = Color3.fromRGB(160, 100, 255),
-    IllusionColor = Color3.fromRGB(0, 245, 131)
-    BorderColor = Color3.fromRGB(35, 36, 46)
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+
+local THEME = {
+    Background = Color3.fromRGB(15, 8, 22),
+    Header = Color3.fromRGB(28, 14, 40),
+    Card = Color3.fromRGB(30, 18, 41),
+    CardHover = Color3.fromRGB(48, 26, 62),
+    Text = Color3.fromRGB(255, 247, 239),
+    Muted = Color3.fromRGB(204, 187, 214),
+    Orange = Color3.fromRGB(255, 130, 20),
+    OrangeGlow = Color3.fromRGB(255, 170, 60),
+    Purple = Color3.fromRGB(150, 70, 220),
+    Green = Color3.fromRGB(90, 255, 158),
+    Border = Color3.fromRGB(255, 120, 0),
 }
 
-ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Invis_Stellar_Selector_" .. math.random(100, 999)
-ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+-- Destroy previous GUI if exists
+local oldGui = PlayerGui:FindFirstChild("HalloweenHubSelector")
+if oldGui then
+    oldGui:Destroy()
+end
 
-pcall(function()
-    if gethui then ScreenGui.Parent = gethui()
-    elseif CoreGui then ScreenGui.Parent = CoreGui
-    else ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui", 10) end
-end)
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "HalloweenHubSelector"
+Gui.ResetOnSpawn = false
+Gui.IgnoreGuiInset = true
+Gui.DisplayOrder = 50
+Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+Gui.Parent = PlayerGui
 
-MainFrame = Instance.new("CanvasGroup", ScreenGui)
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 320, 0, 260)
-MainFrame.Position = UDim2.new(0.5, -160, 0.5, -130)
-MainFrame.BackgroundColor3 = THEME.Background
-MainFrame.GroupTransparency = 1
-MainFrame.Visible = true
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 16)
+local function create(className, properties, parent)
+    local object = Instance.new(className)
+    for key, value in pairs(properties) do
+        object[key] = value
+    end
+    object.Parent = parent
+    return object
+end
 
-MainStroke = Instance.new("UIStroke", MainFrame)
-MainStroke.Thickness = 2
-MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-task.spawn(function()
-    while MainStroke and MainStroke.Parent do
-        for i = 0, 1, 0.004 do
-            if MainStroke and MainStroke.Parent then
-                MainStroke.Color = Color3.fromHSV(i, 0.7, 0.9)
+local function corner(parent, radius)
+    return create("UICorner", {
+        CornerRadius = UDim.new(0, radius or 12)
+    }, parent)
+end
+
+local function addStroke(parent, color, thickness, transparency)
+    return create("UIStroke", {
+        Color = color or THEME.Orange,
+        Thickness = thickness or 1.5,
+        Transparency = transparency or 0,
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+    }, parent)
+end
+
+local function tween(object, duration, properties, style)
+    local animation = TweenService:Create(
+        object,
+        TweenInfo.new(
+            duration,
+            style or Enum.EasingStyle.Quart,
+            Enum.EasingDirection.Out
+        ),
+        properties
+    )
+    animation:Play()
+    return animation
+end
+
+-- Main Window
+local Main = create("Frame", {
+    Name = "MainFrame",
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.fromScale(0.5, 0.5),
+    Size = UDim2.new(0.88, 0, 0.72, 0),
+    BackgroundColor3 = THEME.Background,
+    BackgroundTransparency = 0,
+    BorderSizePixel = 0,
+    ClipsDescendants = true,
+    ZIndex = 1,
+}, Gui)
+
+create("UISizeConstraint", {
+    MinSize = Vector2.new(290, 360),
+    MaxSize = Vector2.new(380, 460),
+}, Main)
+
+corner(Main, 18)
+
+-- Neon Orange Border for Main Frame
+local MainStroke = addStroke(Main, THEME.Orange, 2, 0)
+
+create("UIGradient", {
+    Rotation = 135,
+    Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(32, 14, 45)),
+        ColorSequenceKeypoint.new(0.5, THEME.Background),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(24, 10, 35)),
+    }),
+}, Main)
+
+-- Header Frame
+local Header = create("Frame", {
+    Name = "Header",
+    Position = UDim2.new(0, 0, 0, 0),
+    Size = UDim2.new(1, 0, 0, 76),
+    BackgroundColor3 = THEME.Header,
+    BorderSizePixel = 0,
+    ZIndex = 2,
+}, Main)
+
+corner(Header, 18) -- Smooth header top corners
+
+create("UIGradient", {
+    Rotation = 0,
+    Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(55, 20, 65)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(25, 12, 38)),
+    }),
+}, Header)
+
+-- Header Line Separator
+local HeaderLine = create("Frame", {
+    Position = UDim2.new(0, 10, 1, -3),
+    Size = UDim2.new(1, -20, 0, 3),
+    BackgroundColor3 = THEME.Orange,
+    BorderSizePixel = 0,
+    ZIndex = 3,
+}, Header)
+
+corner(HeaderLine, 4)
+
+create("UIGradient", {
+    Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, THEME.Orange),
+        ColorSequenceKeypoint.new(0.5, THEME.Purple),
+        ColorSequenceKeypoint.new(1, THEME.Orange),
+    }),
+}, HeaderLine)
+
+create("TextLabel", {
+    Position = UDim2.new(0, 12, 0, 17),
+    Size = UDim2.new(0, 43, 0, 43),
+    BackgroundTransparency = 1,
+    Text = "🎃",
+    TextSize = 33,
+    Font = Enum.Font.Gotham,
+    ZIndex = 4,
+}, Header)
+
+create("TextLabel", {
+    Position = UDim2.new(0, 59, 0, 18),
+    Size = UDim2.new(1, -112, 0, 24),
+    BackgroundTransparency = 1,
+    Text = "HUB SELECTOR",
+    TextColor3 = THEME.Text,
+    Font = Enum.Font.GothamBlack,
+    TextSize = 17,
+    TextXAlignment = Enum.TextXAlignment.Left,
+    ZIndex = 4,
+}, Header)
+
+create("TextLabel", {
+    Position = UDim2.new(0, 60, 0, 44),
+    Size = UDim2.new(1, -100, 0, 16),
+    BackgroundTransparency = 1,
+    Text = "HALLOWEEN EDITION",
+    TextColor3 = THEME.Orange,
+    Font = Enum.Font.GothamBold,
+    TextSize = 10,
+    TextXAlignment = Enum.TextXAlignment.Left,
+    ZIndex = 4,
+}, Header)
+
+create("TextLabel", {
+    Position = UDim2.new(1, -65, 0, 8),
+    Size = UDim2.new(0, 25, 0, 23),
+    BackgroundTransparency = 1,
+    Text = "🦇",
+    TextSize = 17,
+    ZIndex = 4,
+}, Header)
+
+local Close = create("TextButton", {
+    Position = UDim2.new(1, -35, 0, 12),
+    Size = UDim2.new(0, 24, 0, 24),
+    BackgroundColor3 = Color3.fromRGB(65, 25, 40),
+    Text = "×",
+    TextColor3 = THEME.Text,
+    Font = Enum.Font.GothamBold,
+    TextSize = 18,
+    AutoButtonColor = false,
+    ZIndex = 5,
+}, Header)
+
+corner(Close, 8)
+addStroke(Close, THEME.Orange, 1, 0.2)
+
+create("TextLabel", {
+    Position = UDim2.new(0, 17, 0, 88),
+    Size = UDim2.new(1, -34, 0, 19),
+    BackgroundTransparency = 1,
+    Text = "CHOOSE YOUR EXPERIENCE",
+    TextColor3 = THEME.Text,
+    Font = Enum.Font.GothamBold,
+    TextSize = 12,
+    TextXAlignment = Enum.TextXAlignment.Left,
+    ZIndex = 3,
+}, Main)
+
+create("TextLabel", {
+    Position = UDim2.new(0, 17, 0, 108),
+    Size = UDim2.new(1, -34, 0, 17),
+    BackgroundTransparency = 1,
+    Text = "Choose your hub for tonight",
+    TextColor3 = THEME.Muted,
+    Font = Enum.Font.Gotham,
+    TextSize = 10,
+    TextXAlignment = Enum.TextXAlignment.Left,
+    ZIndex = 3,
+}, Main)
+
+local Scroll = create("ScrollingFrame", {
+    Name = "HubList",
+    Position = UDim2.new(0, 13, 0, 135),
+    Size = UDim2.new(1, -26, 1, -191),
+    BackgroundTransparency = 1,
+    BorderSizePixel = 0,
+    ScrollBarThickness = 3,
+    ScrollBarImageColor3 = THEME.Orange,
+    AutomaticCanvasSize = Enum.AutomaticSize.Y,
+    CanvasSize = UDim2.new(0, 0, 0, 0),
+    ScrollingDirection = Enum.ScrollingDirection.Y,
+    ZIndex = 3,
+}, Main)
+
+create("UIListLayout", {
+    Padding = UDim.new(0, 9),
+    SortOrder = Enum.SortOrder.LayoutOrder,
+    HorizontalAlignment = Enum.HorizontalAlignment.Center,
+}, Scroll)
+
+create("UIPadding", {
+    PaddingTop = UDim.new(0, 3),
+    PaddingBottom = UDim.new(0, 6),
+    PaddingLeft = UDim.new(0, 2),
+    PaddingRight = UDim.new(0, 3),
+}, Scroll)
+
+-- Bottom Status Bar
+local StatusContainer = create("Frame", {
+    Position = UDim2.new(0, 13, 1, -38),
+    Size = UDim2.new(1, -26, 0, 26),
+    BackgroundColor3 = Color3.fromRGB(22, 11, 32),
+    BorderSizePixel = 0,
+    ZIndex = 3,
+}, Main)
+
+corner(StatusContainer, 8)
+addStroke(StatusContainer, THEME.Orange, 1, 0.6)
+
+local Status = create("TextLabel", {
+    Size = UDim2.fromScale(1, 1),
+    BackgroundTransparency = 1,
+    Text = "●  SYSTEM READY  ●",
+    TextColor3 = THEME.Green,
+    Font = Enum.Font.Code,
+    TextSize = 10,
+    TextXAlignment = Enum.TextXAlignment.Center,
+    ZIndex = 4,
+}, StatusContainer)
+
+-- Function to Create Hub Cards with Execute Logic
+local function createHub(name, icon, accent, description, tag, executeFunc)
+    local Card = create("Frame", {
+        Name = name:gsub("%s+", "") .. "Card",
+        Size = UDim2.new(1, -5, 0, 88),
+        BackgroundColor3 = THEME.Card,
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+        ZIndex = 3,
+    }, Scroll)
+
+    corner(Card, 12)  
+
+    create("UIGradient", {  
+        Rotation = 15,  
+        Color = ColorSequence.new({  
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(48, 25, 55)),  
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(24, 14, 35)),  
+        }),  
+    }, Card)  
+
+    local CardStroke = addStroke(Card, THEME.Orange, 1.2, 0.3)  
+
+    -- Orange Accent Indicator Bar
+    local AccentBar = create("Frame", {  
+        Position = UDim2.new(0, 0, 0, 11),  
+        Size = UDim2.new(0, 4, 1, -22),  
+        BackgroundColor3 = accent,  
+        BorderSizePixel = 0,  
+        ZIndex = 4,  
+    }, Card)  
+    corner(AccentBar, 4)
+
+    local IconBox = create("Frame", {  
+        Position = UDim2.new(0, 12, 0.5, -23),  
+        Size = UDim2.new(0, 46, 0, 46),  
+        BackgroundColor3 = Color3.fromRGB(22, 12, 32),  
+        BorderSizePixel = 0,  
+        ZIndex = 4,  
+    }, Card)  
+
+    corner(IconBox, 10)  
+    addStroke(IconBox, accent, 1.1, 0.2)  
+
+    create("TextLabel", {  
+        Size = UDim2.fromScale(1, 1),  
+        BackgroundTransparency = 1,  
+        Text = icon,  
+        TextColor3 = accent,  
+        Font = Enum.Font.GothamBold,  
+        TextSize = 26,  
+        ZIndex = 5,  
+    }, IconBox)  
+
+    create("TextLabel", {  
+        Position = UDim2.new(0, 68, 0, 13),  
+        Size = UDim2.new(1, -105, 0, 19),  
+        BackgroundTransparency = 1,  
+        Text = name,  
+        TextColor3 = THEME.Text,  
+        Font = Enum.Font.GothamBlack,  
+        TextSize = 13,  
+        TextXAlignment = Enum.TextXAlignment.Left,  
+        ZIndex = 4,  
+    }, Card)  
+
+    create("TextLabel", {  
+        Position = UDim2.new(0, 69, 0, 35),  
+        Size = UDim2.new(1, -105, 0, 16),  
+        BackgroundTransparency = 1,  
+        Text = description,  
+        TextColor3 = THEME.Muted,  
+        Font = Enum.Font.Gotham,  
+        TextSize = 9,  
+        TextTruncate = Enum.TextTruncate.AtEnd,  
+        TextXAlignment = Enum.TextXAlignment.Left,  
+        ZIndex = 4,  
+    }, Card)  
+
+    local Tag = create("TextLabel", {  
+        Position = UDim2.new(0, 68, 0, 58),  
+        Size = UDim2.new(0, 145, 0, 19),  
+        BackgroundColor3 = Color3.fromRGB(42, 22, 50),  
+        Text = tag,  
+        TextColor3 = accent,  
+        Font = Enum.Font.GothamBold,  
+        TextSize = 8,  
+        TextTruncate = Enum.TextTruncate.AtEnd,  
+        ZIndex = 4,  
+    }, Card)  
+
+    corner(Tag, 6)  
+    addStroke(Tag, accent, 0.8, 0.4)  
+
+    create("TextLabel", {  
+        AnchorPoint = Vector2.new(1, 0.5),  
+        Position = UDim2.new(1, -11, 0.5, 0),  
+        Size = UDim2.new(0, 16, 0, 25),  
+        BackgroundTransparency = 1,  
+        Text = "›",  
+        TextColor3 = accent,  
+        Font = Enum.Font.GothamBold,  
+        TextSize = 26,  
+        ZIndex = 4,  
+    }, Card)  
+
+    local Button = create("TextButton", {  
+        Size = UDim2.fromScale(1, 1),  
+        BackgroundTransparency = 1,  
+        Text = "",  
+        AutoButtonColor = false,  
+        ZIndex = 6,  
+    }, Card)  
+
+    Button.MouseEnter:Connect(function()  
+        tween(Card, 0.18, {  
+            BackgroundColor3 = THEME.CardHover,  
+        })  
+        tween(CardStroke, 0.18, {  
+            Color = THEME.Orange,
+            Transparency = 0,  
+            Thickness = 1.8,  
+        })  
+    end)  
+
+    Button.MouseLeave:Connect(function()  
+        tween(Card, 0.18, {  
+            BackgroundColor3 = THEME.Card,  
+        })  
+        tween(CardStroke, 0.18, {  
+            Color = THEME.Orange,
+            Transparency = 0.3,  
+            Thickness = 1.2,  
+        })  
+    end)  
+
+    Button.Activated:Connect(function()  
+        Status.Text = "EXECUTING: " .. name  
+        Status.TextColor3 = THEME.Orange  
+
+        tween(CardStroke, 0.12, {  
+            Thickness = 2.5,  
+            Transparency = 0,  
+        })  
+
+        task.delay(0.2, function()  
+            if Card.Parent then  
+                tween(CardStroke, 0.18, {  
+                    Thickness = 1.2,  
+                    Transparency = 0.3,
+                })  
+            end  
+        end)  
+
+        print("Executing hub: " .. name)  
+        
+        -- Safe Execution Script
+        task.spawn(function()
+            local success, err = pcall(executeFunc)
+            if success then
+                Status.Text = "LOADED: " .. name
+                Status.TextColor3 = THEME.Green
+            else
+                Status.Text = "ERROR LOADING HUB!"
+                Status.TextColor3 = Color3.fromRGB(255, 80, 80)
+                warn("Failed to load script:", err)
             end
-            task.wait(0.02)
-        end
-    end
-end)
-
-mDrag, mStart, mPos = nil, nil, nil
-MainFrame.InputBegan:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-        mDrag = true; mStart = i.Position; mPos = MainFrame.Position
-    end
-end)
-UserInputService.InputChanged:Connect(function(i)
-    if mDrag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-        d = i.Position - mStart
-        MainFrame.Position = UDim2.new(mPos.X.Scale, mPos.X.Offset + d.X, mPos.Y.Scale, mPos.Y.Offset + d.Y)
-    end
-end)
-UserInputService.InputEnded:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then mDrag = false end
-end)
-
-TopBar = Instance.new("Frame", MainFrame)
-TopBar.Name = "TopBar"
-TopBar.Size = UDim2.new(1, 0, 0, 45)
-TopBar.BackgroundColor3 = THEME.TopBar
-TopBar.BorderSizePixel = 0
-
-Title = Instance.new("TextLabel", TopBar)
-Title.Name = "Title"
-Title.Size = UDim2.new(1, 0, 1, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "SELECT HUB EDITION"
-Title.TextColor3 = THEME.TextMain
-Title.FontFace = Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.Bold)
-Title.TextSize = 14
-Title.TextXAlignment = Enum.TextXAlignment.Center
-
-Separator = Instance.new("Frame", MainFrame)
-Separator.Size = UDim2.new(1, 0, 0, 1)
-Separator.Position = UDim2.new(0, 0, 0, 45)
-Separator.BackgroundColor3 = Color3.fromRGB(35, 36, 45)
-Separator.BorderSizePixel = 0
-
-ScrollContainer = Instance.new("ScrollingFrame", MainFrame)
-ScrollContainer.Name = "ButtonScroll"
-ScrollContainer.Size = UDim2.new(1, 0, 1, -46)
-ScrollContainer.Position = UDim2.new(0, 0, 0, 46)
-ScrollContainer.BackgroundTransparency = 1
-ScrollContainer.BorderSizePixel = 0
-ScrollContainer.ScrollBarThickness = 3
-ScrollContainer.ScrollBarImageColor3 = THEME.IllusionColor
-ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
-ScrollContainer.AutomaticCanvasSize = Enum.AutomaticSize.Y
-
-ScrollLayout = Instance.new("UIListLayout", ScrollContainer)
-ScrollLayout.Padding = UDim.new(0, 12)
-ScrollLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-ScrollLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-ScrollPadding = Instance.new("UIPadding", ScrollContainer)
-ScrollPadding.PaddingTop = UDim.new(0, 12)
-ScrollPadding.PaddingBottom = UDim.new(0, 12)
-
-function createHubButton(name, accentColor, descriptionText)
-    local btnContainer = Instance.new("Frame", ScrollContainer)
-    btnContainer.Size = UDim2.new(1, -32, 0, 56)
-    btnContainer.BackgroundColor3 = THEME.ButtonBg
-    Instance.new("UICorner", btnContainer).CornerRadius = UDim.new(0, 10)
-    
-    local btnStroke = Instance.new("UIStroke", btnContainer)
-    btnStroke.Thickness = 1.5
-    btnStroke.Color = THEME.BorderColor
-    btnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-
-    local mainBtn = Instance.new("TextButton", btnContainer)
-    mainBtn.Size = UDim2.new(1, 0, 1, 0)
-    mainBtn.BackgroundTransparency = 1
-    mainBtn.Text = ""
-
-    local titleLbl = Instance.new("TextLabel", btnContainer)
-    titleLbl.Size = UDim2.new(1, -20, 0, 22)
-    titleLbl.Position = UDim2.new(0, 12, 0, 8)
-    titleLbl.BackgroundTransparency = 1
-    titleLbl.Text = name
-    titleLbl.TextColor3 = THEME.TextMain
-    titleLbl.FontFace = Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.Bold)
-    titleLbl.TextSize = 14
-    titleLbl.TextXAlignment = Enum.TextXAlignment.Left
-
-    local descLbl = Instance.new("TextLabel", btnContainer)
-    descLbl.Size = UDim2.new(1, -20, 0, 16)
-    descLbl.Position = UDim2.new(0, 12, 0, 28)
-    descLbl.BackgroundTransparency = 1
-    descLbl.Text = descriptionText
-    descLbl.TextColor3 = Color3.fromRGB(130, 132, 145)
-    descLbl.FontFace = Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.SemiBold)
-    descLbl.TextSize = 10
-    descLbl.TextXAlignment = Enum.TextXAlignment.Left
-
-    local arrowIcon = Instance.new("ImageLabel", btnContainer)
-    arrowIcon.AnchorPoint = Vector2.new(0.5, 0.5)
-    arrowIcon.Position = UDim2.new(0.92, 0, 0.5, 0)
-    arrowIcon.Size = UDim2.new(0, 14, 0, 14)
-    arrowIcon.BackgroundTransparency = 1
-    arrowIcon.Image = "rbxassetid://3944703587"
-    arrowIcon.ImageColor3 = Color3.fromRGB(150, 152, 165)
-
-    mainBtn.MouseEnter:Connect(function()
-        TweenService:Create(btnStroke, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {Color = accentColor}):Play()
-        TweenService:Create(titleLbl, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {TextColor3 = accentColor}):Play()
-        TweenService:Create(arrowIcon, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {ImageColor3 = accentColor, Position = UDim2.new(0.93, 0, 0.5, 0)}):Play()
-    end)
-    mainBtn.MouseLeave:Connect(function()
-        TweenService:Create(btnStroke, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {Color = THEME.BorderColor}):Play()
-        TweenService:Create(titleLbl, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {TextColor3 = THEME.TextMain}):Play()
-        TweenService:Create(arrowIcon, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {ImageColor3 = Color3.fromRGB(150, 152, 165), Position = UDim2.new(0.92, 0, 0.5, 0)}):Play()
-    end)
-
-    mainBtn.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            TweenService:Create(btnContainer, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {Size = UDim2.new(1, -40, 0, 52)}):Play()
-        end
-    end)
-    mainBtn.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            TweenService:Create(btnContainer, TweenInfo.new(0.25, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out), {Size = UDim2.new(1, -32, 0, 56)}):Play()
-        end
-    end)
-
-    return mainBtn
-end
-
-InvisButton = createHubButton("âš¡ INVIS HUB V1", THEME.InvisColor, "fast execute and good auto parry")
-InvisV2Button = createHubButton("ðŸ”¥ INVIS HUB V2", THEME.StellarColor, "premium gui and good auto spam")
-IllusionButton = createHubButton("ðŸª„ ILLUSION HUB", THEME.IllusionColor, "preclick , auto parry")
-
-function closeAndDestroyMenu()
-    t = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {GroupTransparency = 1, Size = UDim2.new(0, 280, 0, 180), Position = MainFrame.Position + UDim2.new(0, 20, 0, 20)})
-    t:Play()
-    t.Completed:Once(function()
-        ScreenGui:Destroy()
+        end)
     end)
 end
 
-InvisButton.MouseButton1Click:Connect(function()
-    closeAndDestroyMenu()
-    task.spawn(function()
-        -- à¸”à¸¶à¸‡à¹‚à¸„à¹‰à¸”à¹€à¸§à¸­à¸£à¹Œà¸Šà¸±à¸™à¸”à¸±à¸à¸ˆà¸±à¸š Bypass à¸¥à¹ˆà¸²à¸ªà¸¸à¸”à¸ˆà¸²à¸à¸„à¸¥à¸±à¸‡à¸—à¸µà¹ˆà¸„à¸¸à¸“à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¸žà¸´à¸à¸±à¸”
-        local source = game:HttpGet("https://raw.githubusercontent.com/foreverspacexc-blip/Test/refs/heads/main/INVISOnly.txt")
-        
-        -- à¸—à¸³à¸‡à¸²à¸™à¸–à¸­à¸”à¸£à¸«à¸±à¸ªà¸£à¸±à¸™à¸£à¸°à¸šà¸šà¸à¸²à¸™ 16 à¹€à¸ªà¸–à¸µà¸¢à¸£à¸ªà¸¹à¸‡à¸•à¸²à¸¡à¹‚à¸„à¸£à¸‡à¸ªà¸£à¹‰à¸²à¸‡à¹€à¸”à¸´à¸¡à¸‚à¸­à¸‡à¸„à¸¸à¸“
-        local hex = source:gsub(".", function(c)
-            return string.format("%02X", string.byte(c))
-        end)
-        
-        assert(loadstring(hex:gsub("%x%x", function(h)
-            return string.char(tonumber(h, 16))
-        end)))()
-    end)
+-- Create Hubs with exact URLs provided
+createHub(
+    "INVIS HUB V1",
+    "⚡",
+    THEME.Orange,
+    "Massive feature packed with rich utilities",
+    "FEATURE RICH • BASIC PARRY",
+    function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/foreverspacexc-blip/Test/refs/heads/main/INVISOnly.txt"))()
+    end
+)
+
+createHub(
+    "INVIS HUB V2",
+    "🔥",
+    THEME.Purple,
+    "Optimized manual spam with balanced parry",
+    "MANUAL SPAM • STABLE PARRY",
+    function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/foreverspacexc-blip/INVISHUB/refs/heads/main/gui.txt"))()
+    end
+)
+
+createHub(
+    "ILLUSION HUB",
+    "👁",
+    THEME.Green,
+    "Elite auto parry with essential blade ball tools",
+    "GOD PARRY • ESSENTIALS",
+    function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/foreverspacexc-blip/OTHERHUB/refs/heads/main/endless_hub.txt"))()
+    end
+)
+
+-- Footer Separator Line
+local FooterLine = create("Frame", {
+    Position = UDim2.new(0, 17, 1, -48),
+    Size = UDim2.new(1, -34, 0, 1),
+    BackgroundColor3 = THEME.Orange,
+    BorderSizePixel = 0,
+    ZIndex = 3,
+}, Main)
+
+corner(FooterLine, 1)
+
+create("TextLabel", {
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.new(0.5, 0, 0, 0),
+    Size = UDim2.new(0, 28, 0, 22),
+    BackgroundColor3 = THEME.Background,
+    Text = "🎃",
+    TextSize = 17,
+    ZIndex = 4,
+}, FooterLine)
+
+-- Dragging Mechanics
+local dragging = false
+local dragStart
+local startPosition
+local dragInput
+
+Header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true  
+        dragStart = input.Position  
+        startPosition = Main.Position  
+
+        input.Changed:Connect(function()  
+            if input.UserInputState == Enum.UserInputState.End then  
+                dragging = false  
+            end  
+        end)  
+    end
 end)
 
-InvisV2Button.MouseButton1Click:Connect(function()
-    closeAndDestroyMenu()
-    task.spawn(function()
-        xpcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/foreverspacexc-blip/INVISHUB/refs/heads/main/gui.txt"))()
-        end, function(err)
-            print("Error executing Invis Hub V2: " .. tostring(err))
-        end)
-    end)
+Header.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+    or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
 end)
 
-IllusionButton.MouseButton1Click:Connect(function()
-    closeAndDestroyMenu()
-    task.spawn(function()
-        xpcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/foreverspacexc-blip/OTHERHUB/refs/heads/main/endless_hub.txt"))()
-        end, function(err)
-            print("Error executing Illusion Hub: " .. tostring(err))
-        end)
-    end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input == dragInput then
+        local delta = input.Position - dragStart
+        Main.Position = UDim2.new(  
+            startPosition.X.Scale,  
+            startPosition.X.Offset + delta.X,  
+            startPosition.Y.Scale,  
+            startPosition.Y.Offset + delta.Y  
+        )  
+    end
 end)
 
-tweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-fadeInTween = TweenService:Create(MainFrame, tweenInfo, {GroupTransparency = 0})
-fadeInTween:Play()
+-- Smooth Closing Logic
+local closed = false
+
+local function closeMenu()
+    if closed then return end
+    closed = true  
+
+    tween(Main, 0.2, {  
+        Position = Main.Position + UDim2.fromOffset(0, 10),  
+        BackgroundTransparency = 1,  
+    })  
+
+    for _, obj in ipairs(Main:GetDescendants()) do  
+        if obj:IsA("TextLabel") or obj:IsA("TextButton") then  
+            tween(obj, 0.15, {  
+                TextTransparency = 1,  
+            })  
+        elseif obj:IsA("UIStroke") then  
+            tween(obj, 0.15, {  
+                Transparency = 1,  
+            })  
+        end  
+    end  
+
+    task.wait(0.23)  
+
+    if Gui.Parent then  
+        Gui:Destroy()  
+    end
+end
+
+Close.Activated:Connect(closeMenu)
+
+Close.MouseEnter:Connect(function()
+    tween(Close, 0.12, {
+        BackgroundColor3 = Color3.fromRGB(120, 30, 40),
+        TextColor3 = THEME.Orange,
+    })
+end)
+
+Close.MouseLeave:Connect(function()
+    tween(Close, 0.12, {
+        BackgroundColor3 = Color3.fromRGB(65, 25, 40),
+        TextColor3 = THEME.Text,
+    })
+end)
+
+-- Glowing Pulse Animation for Orange Main Border
+task.spawn(function()
+    local t = 0
+    while Gui.Parent and not closed do  
+        t += 0.03
+        local alpha = (math.sin(t) + 1) / 2  
+        MainStroke.Color = THEME.Orange:Lerp(THEME.OrangeGlow, alpha)  
+        task.wait(0.03)  
+    end
+end)
+
+-- Entrance Animation
+Main.Position = UDim2.fromScale(0.5, 0.54)
+tween(Main, 0.35, {
+    Position = UDim2.fromScale(0.5, 0.5),
+}, Enum.EasingStyle.Back)
