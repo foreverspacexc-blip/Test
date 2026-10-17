@@ -480,7 +480,7 @@ createHub(
 )
 
 createHub(
-    "illusion v2 (beta)",
+    "illusion v2",
     "👁",
     THEME.Green,
     "best free script ever",
